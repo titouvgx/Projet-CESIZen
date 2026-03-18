@@ -189,8 +189,8 @@ class _NavBar extends StatelessWidget {
           ]),
           const Spacer(),
           if (!isMobile) ...[
-          _NavItem('Accueil'),
-          _NavItem('Diagnostics', destination: const DiagnosticPage(isLoggedIn: false)),
+          _NavItem('Accueil', destination: const CESIZenApp()),
+          _NavItem('Diagnostics', destination: const DiagnosticPage()),
           _NavItem('Contenus'),
           _NavItem('Votre espace'),
           _NavItem('Besoin d\'aide ?'),
@@ -215,9 +215,9 @@ class _NavBar extends StatelessWidget {
 
 class _NavItem extends StatelessWidget {
   final String label;
-  final Widget? destination;
-  
-  const _NavItem(this.label, this.destination);
+  final Widget? destination; // ← paramètre manquant
+
+  const _NavItem(this.label, {this.destination});
 
   @override
   Widget build(BuildContext context) {

@@ -215,4 +215,13 @@ class SupabaseService {
         .update({'nom': nouveauNom})
         .eq('id_utilisateur', idUtilisateur);
   }
+  // Récupère les questions actives par thème
+  static Future<List<Map<String, dynamic>>> getQuestionsByTheme(String theme) async {
+    final data = await _client
+        .from('question')
+        .select()
+        .eq('active', true)
+        .eq('theme', theme);
+    return List<Map<String, dynamic>>.from(data);
+  }
 }

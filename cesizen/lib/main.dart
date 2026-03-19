@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'home_page.dart';
 import 'diagnosticpage.dart';
+import 'widgets.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

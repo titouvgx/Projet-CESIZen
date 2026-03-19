@@ -2,44 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'services/supabase_service.dart';
 import 'diagnosticpage.dart';
-
-// ─────────────────────────────────────────────
-// TEST CONNEXION SUPABASE
-// ─────────────────────────────────────────────
-Future<void> testConnexion() async {
-  try {
-    final supabase = Supabase.instance.client;
-    final data = await supabase.from('question').select();
-    print('✅ Connexion OK — ${data.length} questions trouvées');
-    for (var question in data) {
-      print('  → ${question['id_question']} | ${question['libelle']} | actif: ${question['active']}');
-    }
-  } catch (e) {
-    print('❌ Erreur : $e');
-  }
-}
-
-// ─────────────────────────────────────────────
-// CONSTANTES DE COULEURS
-// ─────────────────────────────────────────────
-const kGreen = Color(0xFF2EAF6F);
-const kGreenLight = Color(0xFFE8F7EF);
-const kGreenDark = Color(0xFF1E8A55);
-const kYellow = Color(0xFFF5C842);
-const kGrey = Color(0xFF6B7280);
-const kLightGrey = Color(0xFFF3F4F6);
-const kText = Color(0xFF1F2937);
-
-// Couleur par catégorie de contenu
-Color getCategorieColor(String? categorie) {
-  switch (categorie?.toLowerCase()) {
-    case 'bien-être': return const Color(0xFF10B981);
-    case 'relations': return const Color(0xFF3B82F6);
-    case 'sommeil':   return const Color(0xFF8B5CF6);
-    case 'stress':    return const Color(0xFFEF4444);
-    default:          return kGreen;
-  }
-}
+import 'variables.dart';
+import 'widgets.dart';
+import 'contenu_page.dart';
 
 // ─────────────────────────────────────────────
 // APP
@@ -74,23 +39,20 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
 
-  // ── État ────────────────────────────────────
   List<Map<String, dynamic>> _contenus = [];
   List<Map<String, dynamic>> _questions = [];
   List<Map<String, dynamic>> _choix = [];
-  Map<String, int> _reponses = {}; // id_question → id_choix sélectionné
+  Map<String, int> _reponses = {};
   bool _loadingContenus = true;
   bool _loadingQuestions = true;
 
   @override
   void initState() {
     super.initState();
-    testConnexion();
     _loadContenus();
     _loadQuestions();
   }
 
-  // ── Chargement des 3 derniers contenus publiés ──
   Future<void> _loadContenus() async {
     try {
       final data = await SupabaseService.getContenuPublie();
@@ -104,7 +66,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // ── Chargement des questions actives + choix ──
   Future<void> _loadQuestions() async {
     try {
       final questions = await SupabaseService.getQuestions();
@@ -130,18 +91,18 @@ class _HomePageState extends State<HomePage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            _NavBar(isMobile: isMobile),
+            // ── NAVBAR depuis widgets.dart ──
+            CESIZenNavBar(isMobile: isMobile, activePage: 'Accueil'),
+
             _HeroSection(isMobile: isMobile),
             _AboutSection(isMobile: isMobile),
 
-            // Contenus depuis Supabase
             _TrendingSection(
               isMobile: isMobile,
               contenus: _contenus,
               loading: _loadingContenus,
             ),
 
-            // Questions depuis Supabase
             _DiagnosticSection(
               isMobile: isMobile,
               questions: _questions,
@@ -153,81 +114,10 @@ class _HomePageState extends State<HomePage> {
               },
             ),
 
-            _Footer(),
+            // ── FOOTER depuis widgets.dart ──
+            const CESIZenFooter(),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-// NAVBAR
-// ─────────────────────────────────────────────
-class _NavBar extends StatelessWidget {
-  final bool isMobile;
-  const _NavBar({required this.isMobile});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-      child: Row(
-        children: [
-          Row(children: [
-            Container(
-              width: 32, height: 32,
-              decoration: BoxDecoration(color: kGreen, borderRadius: BorderRadius.circular(8)),
-              child: const Center(
-                // TODO: Image.asset('assets/logo_cesizen.png')
-                child: Text('CZ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Text('CESIZen', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: kText)),
-          ]),
-          const Spacer(),
-          if (!isMobile) ...[
-          _NavItem('Accueil', destination: const CESIZenApp()),
-          _NavItem('Diagnostics', destination: const DiagnosticPage()),
-          _NavItem('Contenus'),
-          _NavItem('Votre espace'),
-          _NavItem('Besoin d\'aide ?'),
-            const SizedBox(width: 16),
-          ] else ...[
-            IconButton(onPressed: () {}, icon: const Icon(Icons.menu, color: kText)),
-          ],
-          ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kGreen, foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            ),
-            child: const Text('Se connecter', style: TextStyle(fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  final String label;
-  final Widget? destination; // ← paramètre manquant
-
-  const _NavItem(this.label, {this.destination});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: TextButton(
-        onPressed: destination != null
-            ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => destination!))
-            : null,
-        child: Text(label, style: const TextStyle(color: kText, fontSize: 14)),
       ),
     );
   }
@@ -273,7 +163,14 @@ class _HeroText extends StatelessWidget {
         const SizedBox(height: 28),
         Row(children: [
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const DiagnosticPage(isLoggedIn: false),
+                ),
+              );
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: kGreen, foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -283,7 +180,9 @@ class _HeroText extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           OutlinedButton(
-            onPressed: () {},
+            onPressed: () {
+              // TODO: Navigator.push vers ContenuPage() quand la page sera créée
+            },
             style: OutlinedButton.styleFrom(
               foregroundColor: kGreen, side: const BorderSide(color: kGreen),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -302,16 +201,11 @@ class _HeroImage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: Container(
-        height: 240, color: const Color(0xFFD1D5DB),
-        child: const Center(
-          // TODO: Image.asset('assets/hero_image.jpg', fit: BoxFit.cover)
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.image, size: 48, color: Color(0xFF9CA3AF)),
-            SizedBox(height: 8),
-            Text('Image hero\n(ex: nature apaisante)', textAlign: TextAlign.center,
-                style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13)),
-          ]),
+      child: SizedBox(
+        height: 340,
+        child: Image.asset(
+          'assets/images/HEROzen.jpg',
+          fit: BoxFit.cover,
         ),
       ),
     );
@@ -319,7 +213,7 @@ class _HeroImage extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-// SECTION À PROPOS (statique)
+// SECTION À PROPOS
 // ─────────────────────────────────────────────
 class _AboutSection extends StatelessWidget {
   final bool isMobile;
@@ -389,7 +283,7 @@ class _AboutCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-// SECTION CONTENU EN VOGUE — données Supabase
+// SECTION CONTENU EN VOGUE
 // ─────────────────────────────────────────────
 class _TrendingSection extends StatelessWidget {
   final bool isMobile;
@@ -439,7 +333,7 @@ class _ArticleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final categorie = contenu['categorie'] as String? ?? '';
-    final tagColor = getCategorieColor(categorie);
+    final tagColor = getCategorieColor(categorie); // ← depuis variables.dart
 
     return Container(
       decoration: BoxDecoration(
@@ -450,26 +344,34 @@ class _ArticleCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image placeholder
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: Container(
-              height: 160, color: const Color(0xFFD1D5DB),
-              child: Center(
-                // TODO: Image.asset('assets/article_$categorie.jpg', fit: BoxFit.cover)
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.image, size: 36, color: Color(0xFF9CA3AF)),
-                  const SizedBox(height: 6),
-                  Text('Photo $categorie', textAlign: TextAlign.center,
-                      style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 11)),
-                ]),
-              ),
-            ),
+            child: contenu['image_url'] != null
+                ? Image.network(
+                    contenu['image_url'],
+                    height: 160,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      height: 160, color: const Color(0xFFD1D5DB),
+                      child: const Center(child: Icon(Icons.image, size: 36, color: Color(0xFF9CA3AF))),
+                    ),
+                  )
+                : Container(
+                    height: 160, color: const Color(0xFFD1D5DB),
+                    child: Center(
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.image, size: 36, color: Color(0xFF9CA3AF)),
+                        const SizedBox(height: 6),
+                        Text('Photo $categorie', textAlign: TextAlign.center,
+                            style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 11)),
+                      ]),
+                    ),
+                  ),
           ),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // Tag catégorie
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
@@ -480,11 +382,9 @@ class _ArticleCard extends StatelessWidget {
                     style: TextStyle(color: tagColor, fontSize: 12, fontWeight: FontWeight.w600)),
               ),
               const SizedBox(height: 10),
-              // Titre depuis la base
               Text(contenu['titre'] ?? '',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kText)),
               const SizedBox(height: 8),
-              // Texte tronqué à 100 caractères
               Text(
                 (contenu['texte'] ?? '').length > 100
                     ? '${(contenu['texte'] as String).substring(0, 100)}...'
@@ -493,13 +393,27 @@ class _ArticleCard extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               GestureDetector(
-                onTap: () {},
-                child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                  Text('Lire l\'article',
-                      style: TextStyle(color: kGreen, fontSize: 13, fontWeight: FontWeight.w600)),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ContenuPage()),
+                );
+              },
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Lire l\'article',
+                    style: TextStyle(
+                      color: kGreen,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   SizedBox(width: 4),
                   Icon(Icons.arrow_forward, size: 14, color: kGreen),
-                ]),
+                ],
+              ),
               ),
             ]),
           ),
@@ -510,7 +424,7 @@ class _ArticleCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-// SECTION DIAGNOSTIC — questions depuis Supabase
+// SECTION DIAGNOSTIC
 // ─────────────────────────────────────────────
 class _DiagnosticSection extends StatelessWidget {
   final bool isMobile;
@@ -586,7 +500,14 @@ class _DiagnosticLeft extends StatelessWidget {
         ),
         const SizedBox(height: 28),
         ElevatedButton(
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const DiagnosticPage(isLoggedIn: false),
+              ),
+            );
+          },
           style: ElevatedButton.styleFrom(
             backgroundColor: kGreen, foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -599,7 +520,6 @@ class _DiagnosticLeft extends StatelessWidget {
   }
 }
 
-// Questions en grille 3 colonnes desktop / 1 colonne mobile
 class _DiagnosticQuestions extends StatelessWidget {
   final bool isMobile;
   final List<Map<String, dynamic>> questions;
@@ -622,7 +542,6 @@ class _DiagnosticQuestions extends StatelessWidget {
     if (loading) {
       return const Center(child: CircularProgressIndicator(color: kGreen));
     }
-
     if (questions.isEmpty) {
       return const Text('Aucune question disponible.', style: TextStyle(color: kGrey));
     }
@@ -638,7 +557,7 @@ class _DiagnosticQuestions extends StatelessWidget {
             mainAxisSpacing: 16,
             childAspectRatio: isMobile ? 2.2 : 0.85,
           ),
-          itemCount: questions.length,
+          itemCount: questions.length > 3 ? 3 : questions.length,
           itemBuilder: (context, index) {
             final question = questions[index];
             final idQuestion = question['id_question'] as String;
@@ -652,11 +571,15 @@ class _DiagnosticQuestions extends StatelessWidget {
           },
         ),
         const SizedBox(height: 24),
-        // Bouton valider — actif seulement si toutes les questions sont répondues
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: reponses.length == questions.length ? () {} : null,
+            onPressed: reponses.length >= 3 ? () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DiagnosticPage()),
+              );
+            } : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: kYellow,
               foregroundColor: kText,
@@ -667,7 +590,7 @@ class _DiagnosticQuestions extends StatelessWidget {
             child: Text(
               reponses.length == questions.length
                   ? 'Valider le diagnostic'
-                  : 'Répondez à toutes les questions (${reponses.length}/${questions.length})',
+                  : 'Accéder aux diagnostics complets',
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
@@ -677,7 +600,6 @@ class _DiagnosticQuestions extends StatelessWidget {
   }
 }
 
-// Carte d'une question avec boutons radio
 class _QuestionCard extends StatelessWidget {
   final int numero;
   final Map<String, dynamic> question;
@@ -706,7 +628,6 @@ class _QuestionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Numéro + libellé
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Container(
               width: 24, height: 24,
@@ -727,8 +648,6 @@ class _QuestionCard extends StatelessWidget {
           const SizedBox(height: 12),
           const Divider(color: Color(0xFFE5E7EB), height: 1),
           const SizedBox(height: 8),
-
-          // Boutons radio — choix depuis la base
           ...choix.map((c) {
             final idChoix = c['id_choix'] as int;
             final libelle = c['libelle'] as String;
@@ -760,31 +679,6 @@ class _QuestionCard extends StatelessWidget {
               ),
             );
           }),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-// FOOTER
-// ─────────────────────────────────────────────
-class _Footer extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: kText,
-      padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 32),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text('© 2026 CESIZen — Tous droits réservés',
-              style: TextStyle(color: Colors.white60, fontSize: 13)),
-          Row(children: const [
-            Text('Mentions légales', style: TextStyle(color: Colors.white60, fontSize: 13)),
-            SizedBox(width: 20),
-            Text('Contact', style: TextStyle(color: Colors.white60, fontSize: 13)),
-          ]),
         ],
       ),
     );

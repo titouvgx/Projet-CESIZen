@@ -224,4 +224,33 @@ class SupabaseService {
         .eq('theme', theme);
     return List<Map<String, dynamic>>.from(data);
   }
+  // Récupère toutes les catégories distinctes des contenus publiés
+static Future<List<String>> getCategories() async {
+  final data = await _client
+      .from('contenu')
+      .select('categorie')
+      .eq('statut_publication', 'publié');
+  
+  final categories = data
+      .map((e) => e['categorie'] as String? ?? '')
+      .where((c) => c.isNotEmpty)
+      .toSet()
+      .toList();
+  
+  categories.sort();
+  return categories;
+}
+static Future<void> envoyerMessage({
+  required String nom,
+  required String email,
+  required String sujet,
+  required String message,
+}) async {
+  await _client.from('contact_message').insert({
+    'nom': nom,
+    'email': email,
+    'sujet': sujet,
+    'message': message,
+  });
+}
 }

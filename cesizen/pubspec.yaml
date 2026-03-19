@@ -56,6 +56,9 @@ flutter:
 
   assets:
     - .env
+    - assets/images/logoCesiZen.png
+    - assets/images/PhraseLogoCesiZen.png
+    - assets/images/HEROzen.jpg
 
 
   # The following line ensures that the Material Icons font is

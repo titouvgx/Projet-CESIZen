@@ -327,24 +327,7 @@
                                   color: coche ? kGreenDark : kText,
                                   fontWeight: coche ? FontWeight.w600 : FontWeight.normal,
                                 ),
-                              )),
-
-                              // Score
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: coche ? kGreen.withOpacity(0.15) : kLightGrey,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  '$score pts',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: coche ? kGreenDark : kGrey,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
+                              )), 
                             ]),
                           ),
                         );

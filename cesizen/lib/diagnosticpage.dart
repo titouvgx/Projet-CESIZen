@@ -312,13 +312,15 @@ class _HistoriqueSection extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: isMobile ? 24 : 80, vertical: 60),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Historique de mes diagnostics',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kText)),
-            SizedBox(height: 4),
-            Text('Retrouvez vos diagnostics passés et suivez votre évolution.',
-                style: TextStyle(fontSize: 14, color: kGrey)),
-          ]),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Historique de mes diagnostics',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kText)),
+              const SizedBox(height: 4),
+              const Text('Retrouvez vos diagnostics passés et suivez votre évolution.',
+                  style: TextStyle(fontSize: 14, color: kGrey)),
+            ]),
+          ),
           if (AuthService.isLoggedIn)
             IconButton(onPressed: onRefresh, icon: const Icon(Icons.refresh, color: kGreen)),
         ]),
@@ -454,49 +456,55 @@ class _HistoriqueItem extends StatelessWidget {
     return GestureDetector(
       onTap: () => _showDetailPopup(context, diagnostic),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white, borderRadius: BorderRadius.circular(12),
           border: Border.all(color: const Color(0xFFE5E7EB)),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6, offset: const Offset(0, 2))],
         ),
-        child: Row(children: [
-          Container(width: 44, height: 44,
-            decoration: BoxDecoration(color: niveauColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-            child: Icon(Icons.psychology_outlined, color: niveauColor, size: 22)),
-          const SizedBox(width: 16),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Diagnostic de stress',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kText)),
-            const SizedBox(height: 4),
-            Row(children: [
-              const Icon(Icons.calendar_today_outlined, size: 12, color: kGrey),
-              const SizedBox(width: 4),
-              Text(date, style: const TextStyle(fontSize: 12, color: kGrey)),
-            ]),
-          ])),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(width: 40, height: 40,
+              decoration: BoxDecoration(color: niveauColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+              child: Icon(Icons.psychology_outlined, color: niveauColor, size: 20)),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Diagnostic de stress',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kText)),
+              const SizedBox(height: 2),
+              Row(children: [
+                const Icon(Icons.calendar_today_outlined, size: 11, color: kGrey),
+                const SizedBox(width: 4),
+                Text(date, style: const TextStyle(fontSize: 12, color: kGrey)),
+              ]),
+            ])),
+            // Bouton favori
+            IconButton(
+              onPressed: () async {
+                await SupabaseService.toggleDiagnosticFavori(diagnostic['id_diagnostic'], !estFavori);
+                onFavoriToggle();
+              },
+              icon: Icon(estFavori ? Icons.bookmark : Icons.bookmark_border,
+                  color: estFavori ? kGreen : kGrey, size: 20),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            ),
+            const Icon(Icons.chevron_right, color: kGrey, size: 18),
+          ]),
           if (scoreTotal != null) ...[
-            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            const SizedBox(height: 10),
+            Row(children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: niveauColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                child: Text(niveau, style: TextStyle(fontSize: 12, color: niveauColor, fontWeight: FontWeight.w600)),
+                decoration: BoxDecoration(
+                    color: niveauColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                child: Text(niveau,
+                    style: TextStyle(fontSize: 12, color: niveauColor, fontWeight: FontWeight.w600)),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(width: 8),
               Text('$scoreTotal pts', style: const TextStyle(fontSize: 12, color: kGrey)),
             ]),
-            const SizedBox(width: 8),
           ],
-          IconButton(
-            onPressed: () async {
-              await SupabaseService.toggleDiagnosticFavori(diagnostic['id_diagnostic'], !estFavori);
-              onFavoriToggle();
-            },
-            icon: Icon(estFavori ? Icons.bookmark : Icons.bookmark_border,
-                color: estFavori ? kGreen : kGrey, size: 22),
-            tooltip: estFavori ? 'Retirer des favoris' : 'Ajouter aux favoris',
-          ),
-          const Icon(Icons.chevron_right, color: kGrey, size: 20),
         ]),
       ),
     );

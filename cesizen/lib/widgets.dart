@@ -6,7 +6,6 @@ import 'contenu_page.dart';
 import 'aide_page.dart';
 import 'login_popup.dart';
 import 'auth_service.dart';
-import 'espace_page.dart';
 
 // ─────────────────────────────────────────────
 // NAVBAR PARTAGÉE
@@ -27,7 +26,7 @@ class CESIZenNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 12),
       child: Row(
         children: [
           // Logo
@@ -38,9 +37,11 @@ class CESIZenNavBar extends StatelessWidget {
               (route) => false,
             ),
             child: Row(children: [
-              Image.asset('assets/images/logoCesiZen.png', height: 48, fit: BoxFit.contain),
-              const SizedBox(width: 12),
-              Image.asset('assets/images/PhraseLogoCesiZen.png', height: 48, fit: BoxFit.contain),
+              Image.asset('assets/images/logoCesiZen.png', height: isMobile ? 36 : 48, fit: BoxFit.contain),
+              const SizedBox(width: 8),
+              // Phrase logo cachée sur mobile
+              if (!isMobile)
+                Image.asset('assets/images/PhraseLogoCesiZen.png', height: 40, fit: BoxFit.contain),
             ]),
           ),
           const Spacer(),
@@ -49,18 +50,18 @@ class CESIZenNavBar extends StatelessWidget {
             _NavItem(label: 'Accueil', isActive: activePage == 'Accueil', destination: const HomePage()),
             _NavItem(label: 'Diagnostics', isActive: activePage == 'Diagnostics', destination: const DiagnosticPage()),
             _NavItem(label: 'Contenus', isActive: activePage == 'Contenus', destination: const ContenuPage()),
-            _NavItem(label: 'Votre espace', isActive: activePage == 'Votre espace', destination: const EspacePage()),
+            _NavItem(label: 'Votre espace', isActive: activePage == 'Votre espace'),
             _NavItem(label: 'Besoin d\'aide ?', isActive: activePage == 'Aide', destination: const AidePage()),
             const SizedBox(width: 16),
+            // Bouton auth seulement sur desktop
+            _AuthButton(),
           ] else ...[
+            // Sur mobile : juste le hamburger
             IconButton(
               onPressed: () => _showMobileMenu(context),
               icon: const Icon(Icons.menu, color: kText),
             ),
           ],
-
-          // Bouton connexion / déconnexion — StatefulWidget pour se rafraîchir
-          _AuthButton(),
         ],
       ),
     );
@@ -78,6 +79,12 @@ class CESIZenNavBar extends StatelessWidget {
           _MobileMenuItem(label: 'Contenus', icon: Icons.article_outlined, destination: const ContenuPage()),
           const _MobileMenuItem(label: 'Votre espace', icon: Icons.person_outline),
           _MobileMenuItem(label: 'Besoin d\'aide ?', icon: Icons.help_outline, destination: const AidePage()),
+          const Divider(),
+          // Bouton connexion dans le menu mobile
+          SizedBox(
+            width: double.infinity,
+            child: _AuthButton(),
+          ),
         ]),
       ),
     );
@@ -270,21 +277,33 @@ class CESIZenFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 768;
     return Container(
       color: kText,
-      padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 32),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text('© 2026 CESIZen — Tous droits réservés',
-              style: TextStyle(color: Colors.white60, fontSize: 13)),
-          Row(children: const [
-            Text('Mentions légales', style: TextStyle(color: Colors.white60, fontSize: 13)),
-            SizedBox(width: 20),
-            Text('Contact', style: TextStyle(color: Colors.white60, fontSize: 13)),
-          ]),
-        ],
-      ),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 24 : 80, vertical: 24),
+      child: isMobile
+          ? const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('© 2026 CESIZen — Tous droits réservés',
+                  style: TextStyle(color: Colors.white60, fontSize: 13)),
+              SizedBox(height: 12),
+              Row(children: [
+                Text('Mentions légales', style: TextStyle(color: Colors.white60, fontSize: 13)),
+                SizedBox(width: 20),
+                Text('Contact', style: TextStyle(color: Colors.white60, fontSize: 13)),
+              ]),
+            ])
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('© 2026 CESIZen — Tous droits réservés',
+                    style: TextStyle(color: Colors.white60, fontSize: 13)),
+                Row(children: const [
+                  Text('Mentions légales', style: TextStyle(color: Colors.white60, fontSize: 13)),
+                  SizedBox(width: 20),
+                  Text('Contact', style: TextStyle(color: Colors.white60, fontSize: 13)),
+                ]),
+              ],
+            ),
     );
   }
 }

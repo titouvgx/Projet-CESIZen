@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'services/supabase_service.dart';
 import 'variables.dart';
 import 'widgets.dart';
+import 'auth_service.dart';
 
 // ─────────────────────────────────────────────
 // PAGE CONTENU
@@ -347,7 +348,7 @@ class _ContenuGrille extends StatelessWidget {
         crossAxisCount: colonnes,
         crossAxisSpacing: 20,
         mainAxisSpacing: 20,
-        childAspectRatio: isMobile ? 2.5 : 0.75,
+        childAspectRatio: isMobile ? 2.5 : 0.99,
       ),
       itemCount: contenus.length,
       itemBuilder: (context, index) {
@@ -494,19 +495,72 @@ class _ContenuGrille extends StatelessWidget {
 // ─────────────────────────────────────────────
 // CARTE CONTENU
 // ─────────────────────────────────────────────
-class _ContenuCard extends StatelessWidget {
+class _ContenuCard extends StatefulWidget {
   final Map<String, dynamic> contenu;
   final VoidCallback onTap;
 
   const _ContenuCard({required this.contenu, required this.onTap});
 
   @override
+  State<_ContenuCard> createState() => _ContenuCardState();
+}
+
+class _ContenuCardState extends State<_ContenuCard> {
+  bool _estFavori = false;
+  bool _chargementFavori = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _verifierFavori();
+  }
+
+  Future<void> _verifierFavori() async {
+    if (!AuthService.isLoggedIn) return;
+    try {
+      final favori = await SupabaseService.isFavori(
+        AuthService.idUtilisateur!,
+        widget.contenu['id_contenu'],
+      );
+      if (mounted) setState(() => _estFavori = favori);
+    } catch (e) {
+      print('❌ Erreur vérification favori : $e');
+    }
+  }
+
+  Future<void> _toggleFavori() async {
+    if (!AuthService.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Connectez-vous pour ajouter des favoris.'),
+        backgroundColor: kGrey,
+      ));
+      return;
+    }
+
+    setState(() => _chargementFavori = true);
+    try {
+      if (_estFavori) {
+        await SupabaseService.removeFavori(AuthService.idUtilisateur!, widget.contenu['id_contenu']);
+      } else {
+        await SupabaseService.addFavori(AuthService.idUtilisateur!, widget.contenu['id_contenu']);
+      }
+      if (mounted) setState(() {
+        _estFavori = !_estFavori;
+        _chargementFavori = false;
+      });
+    } catch (e) {
+      print('❌ Erreur toggle favori : $e');
+      if (mounted) setState(() => _chargementFavori = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final categorie = contenu['categorie'] as String? ?? '';
+    final categorie = widget.contenu['categorie'] as String? ?? '';
     final tagColor = getCategorieColor(categorie);
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -517,18 +571,44 @@ class _ContenuCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Image ──
+            // ── Image + bouton cœur ──
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-              child: contenu['image_url'] != null
-                  ? Image.network(
-                      contenu['image_url'],
-                      height: 160,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _ImagePlaceholder(categorie: categorie),
-                    )
-                  : _ImagePlaceholder(categorie: categorie),
+              child: Stack(children: [
+                widget.contenu['image_url'] != null
+                    ? Image.network(
+                        widget.contenu['image_url'],
+                        height: 160, width: double.infinity, fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _ImagePlaceholder(categorie: categorie),
+                      )
+                    : _ImagePlaceholder(categorie: categorie),
+
+                // Bouton cœur
+                Positioned(
+                  top: 8, right: 8,
+                  child: GestureDetector(
+                    onTap: _toggleFavori,
+                    child: Container(
+                      width: 34, height: 34,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 4)],
+                      ),
+                      child: _chargementFavori
+                          ? const Padding(
+                              padding: EdgeInsets.all(8),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: kGreen),
+                            )
+                          : Icon(
+                              _estFavori ? Icons.favorite : Icons.favorite_border,
+                              color: _estFavori ? const Color(0xFFEF4444) : kGrey,
+                              size: 18,
+                            ),
+                    ),
+                  ),
+                ),
+              ]),
             ),
 
             // ── Infos ──
@@ -538,7 +618,6 @@ class _ContenuCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Tag catégorie
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
@@ -549,30 +628,22 @@ class _ContenuCard extends StatelessWidget {
                           style: TextStyle(color: tagColor, fontSize: 11, fontWeight: FontWeight.w600)),
                     ),
                     const SizedBox(height: 10),
-
-                    // Titre
                     Text(
-                      contenu['titre'] ?? '',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                      widget.contenu['titre'] ?? '',
+                      maxLines: 2, overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kText, height: 1.4),
                     ),
                     const SizedBox(height: 6),
-
-                    // Aperçu texte
                     Expanded(
                       child: Text(
-                        (contenu['texte'] ?? '').length > 80
-                            ? '${(contenu['texte'] as String).substring(0, 80)}...'
-                            : contenu['texte'] ?? '',
+                        (widget.contenu['texte'] ?? '').length > 80
+                            ? '${(widget.contenu['texte'] as String).substring(0, 80)}...'
+                            : widget.contenu['texte'] ?? '',
                         style: const TextStyle(fontSize: 12, color: kGrey, height: 1.5),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
+                        maxLines: 3, overflow: TextOverflow.ellipsis,
                       ),
                     ),
-
                     const SizedBox(height: 10),
-                    // Lire l'article
                     Row(mainAxisSize: MainAxisSize.min, children: [
                       Text('Lire l\'article',
                           style: TextStyle(color: tagColor, fontSize: 12, fontWeight: FontWeight.w600)),

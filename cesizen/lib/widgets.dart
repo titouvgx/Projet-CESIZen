@@ -6,6 +6,7 @@ import 'contenu_page.dart';
 import 'aide_page.dart';
 import 'login_popup.dart';
 import 'auth_service.dart';
+import 'espace_page.dart';
 
 // ─────────────────────────────────────────────
 // NAVBAR PARTAGÉE
@@ -48,11 +49,7 @@ class CESIZenNavBar extends StatelessWidget {
             _NavItem(label: 'Accueil', isActive: activePage == 'Accueil', destination: const HomePage()),
             _NavItem(label: 'Diagnostics', isActive: activePage == 'Diagnostics', destination: const DiagnosticPage()),
             _NavItem(label: 'Contenus', isActive: activePage == 'Contenus', destination: const ContenuPage()),
-            _NavItem(
-              label: 'Votre espace',
-              isActive: activePage == 'Votre espace',
-              // TODO: destination: const EspacePage(),
-            ),
+            _NavItem(label: 'Votre espace', isActive: activePage == 'Votre espace', destination: const EspacePage()),
             _NavItem(label: 'Besoin d\'aide ?', isActive: activePage == 'Aide', destination: const AidePage()),
             const SizedBox(width: 16),
           ] else ...[

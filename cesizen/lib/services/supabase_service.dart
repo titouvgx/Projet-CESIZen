@@ -261,4 +261,22 @@ static Future<void> envoyerMessage({
     'message': message,
   });
 }
+// Récupère les diagnostics favoris d'un utilisateur
+static Future<List<Map<String, dynamic>>> getDiagnosticsFavoris(String idUtilisateur) async {
+  final data = await _client
+      .from('diagnostic')
+      .select('*, page_resultat(*)')
+      .eq('id_utilisateur', idUtilisateur)
+      .eq('est_favori', true)
+      .order('date_realisation', ascending: false);
+  return List<Map<String, dynamic>>.from(data);
+}
+
+// Toggle favori sur un diagnostic
+static Future<void> toggleDiagnosticFavori(String idDiagnostic, bool estFavori) async {
+  await _client
+      .from('diagnostic')
+      .update({'est_favori': estFavori})
+      .eq('id_diagnostic', idDiagnostic);
+}
 }

@@ -254,10 +254,6 @@ class _ProfilInfos extends StatelessWidget {
           label: 'Email',
           valeur: AuthService.currentAuthUser?.email ?? '—',
         ),
-        const Divider(color: Color(0xFFE5E7EB), height: 24),
-
-        // Rôle
-        _ProfilChamp(icon: Icons.shield_outlined, label: 'Rôle', valeur: AuthService.role ?? '—'),
       ]),
     );
   }
@@ -290,16 +286,15 @@ class _ProfilActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(children: [
-      // Changer mot de passe
+      // Modifier le profil
       SizedBox(
         width: double.infinity,
-        child: OutlinedButton.icon(
-          onPressed: () => _showChangerMotDePasse(context),
-          icon: const Icon(Icons.lock_outline, size: 18),
-          label: const Text('Changer le mot de passe'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: kGreen,
-            side: const BorderSide(color: kGreen),
+        child: ElevatedButton.icon(
+          onPressed: () => _showModifierProfil(context),
+          icon: const Icon(Icons.edit_outlined, size: 18),
+          label: const Text('Modifier le profil'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kGreen, foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             padding: const EdgeInsets.symmetric(vertical: 14),
           ),
@@ -308,14 +303,15 @@ class _ProfilActions extends StatelessWidget {
     ]);
   }
 
-  void _showChangerMotDePasse(BuildContext context) {
+  void _showModifierProfil(BuildContext context) {
     final formKey = GlobalKey<FormState>();
-    final ancienController = TextEditingController();
-    final nouveauController = TextEditingController();
-    final confirmController = TextEditingController();
+    final nomController = TextEditingController(text: AuthService.nom ?? '');
+    final emailController = TextEditingController(text: AuthService.currentAuthUser?.email ?? '');
+    final nouveauMdpController = TextEditingController();
+    final confirmMdpController = TextEditingController();
     bool chargement = false;
-    bool ancienVisible = false;
-    bool nouveauVisible = false;
+    bool mdpVisible = false;
+    bool changerMdp = false;
 
     showDialog(
       context: context,
@@ -324,89 +320,203 @@ class _ProfilActions extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Container(
             padding: const EdgeInsets.all(28),
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Form(
-              key: formKey,
-              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  const Text('Changer le mot de passe',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kText)),
-                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: kGrey)),
-                ]),
-                const SizedBox(height: 24),
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-                // Nouveau mot de passe
-                _ChampMdp(
-                  controller: nouveauController,
-                  label: 'Nouveau mot de passe',
-                  visible: nouveauVisible,
-                  onToggle: () => setStateDialog(() => nouveauVisible = !nouveauVisible),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Requis';
-                    if (v.length < 6) return 'Min. 6 caractères';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
+                  // Header
+                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                    const Text('Modifier le profil',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kText)),
+                    IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: kGrey)),
+                  ]),
+                  const SizedBox(height: 24),
 
-                // Confirmer
-                _ChampMdp(
-                  controller: confirmController,
-                  label: 'Confirmer le mot de passe',
-                  visible: nouveauVisible,
-                  onToggle: () => setStateDialog(() => nouveauVisible = !nouveauVisible),
-                  validator: (v) {
-                    if (v != nouveauController.text) return 'Les mots de passe ne correspondent pas';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: chargement ? null : () async {
-                      if (!formKey.currentState!.validate()) return;
-                      setStateDialog(() => chargement = true);
-
-                      try {
-                        await Supabase.instance.client.auth.updateUser(
-                          UserAttributes(password: nouveauController.text),
-                        );
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                            content: Text('Mot de passe modifié avec succès !'),
-                            backgroundColor: kGreen,
-                          ));
-                        }
-                      } catch (e) {
-                        setStateDialog(() => chargement = false);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text('Erreur : $e'),
-                            backgroundColor: const Color(0xFFEF4444),
-                          ));
-                        }
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: kGreen, foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: chargement
-                        ? const SizedBox(width: 20, height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Enregistrer', style: TextStyle(fontWeight: FontWeight.w600)),
+                  // ── Nom ──
+                  _ChampProfil(
+                    controller: nomController,
+                    label: 'Nom complet',
+                    hint: 'Jean Dupont',
+                    icon: Icons.person_outline,
+                    validator: (v) => v == null || v.isEmpty ? 'Requis' : null,
                   ),
-                ),
-              ]),
+                  const SizedBox(height: 16),
+
+                  // ── Email ──
+                  _ChampProfil(
+                    controller: emailController,
+                    label: 'Email',
+                    hint: 'jean@exemple.fr',
+                    icon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Requis';
+                      if (!v.contains('@')) return 'Email invalide';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+
+                  // ── Toggle changer mot de passe ──
+                  GestureDetector(
+                    onTap: () => setStateDialog(() => changerMdp = !changerMdp),
+                    child: Row(children: [
+                      Icon(changerMdp ? Icons.expand_less : Icons.expand_more, color: kGreen, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        changerMdp ? 'Annuler le changement de mot de passe' : 'Changer le mot de passe',
+                        style: const TextStyle(fontSize: 13, color: kGreen, fontWeight: FontWeight.w600),
+                      ),
+                    ]),
+                  ),
+
+                  // ── Champs mot de passe ──
+                  if (changerMdp) ...[
+                    const SizedBox(height: 16),
+                    _ChampMdp(
+                      controller: nouveauMdpController,
+                      label: 'Nouveau mot de passe',
+                      visible: mdpVisible,
+                      onToggle: () => setStateDialog(() => mdpVisible = !mdpVisible),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Requis';
+                        if (v.length < 6) return 'Min. 6 caractères';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _ChampMdp(
+                      controller: confirmMdpController,
+                      label: 'Confirmer le mot de passe',
+                      visible: mdpVisible,
+                      onToggle: () => setStateDialog(() => mdpVisible = !mdpVisible),
+                      validator: (v) {
+                        if (changerMdp && v != nouveauMdpController.text) {
+                          return 'Les mots de passe ne correspondent pas';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+
+                  const SizedBox(height: 28),
+
+                  // ── Bouton enregistrer ──
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: chargement ? null : () async {
+                        if (!formKey.currentState!.validate()) return;
+                        setStateDialog(() => chargement = true);
+
+                        try {
+                          final client = Supabase.instance.client;
+
+                          // Mise à jour du nom dans la table utilisateur
+                          if (nomController.text.trim() != AuthService.nom) {
+                            await SupabaseService.updateNom(
+                              AuthService.idUtilisateur!,
+                              nomController.text.trim(),
+                            );
+                          }
+
+                          // Mise à jour email + mot de passe dans Supabase Auth
+                          final attrs = UserAttributes(
+                            email: emailController.text.trim() != AuthService.currentAuthUser?.email
+                                ? emailController.text.trim()
+                                : null,
+                            password: changerMdp && nouveauMdpController.text.isNotEmpty
+                                ? nouveauMdpController.text
+                                : null,
+                          );
+
+                          if (attrs.email != null || attrs.password != null) {
+                            await client.auth.updateUser(attrs);
+                          }
+
+                          // Recharge le profil
+                          await AuthService.restaurerSession();
+
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                              content: Text('Profil mis à jour avec succès !'),
+                              backgroundColor: kGreen,
+                            ));
+                          }
+                        } catch (e) {
+                          setStateDialog(() => chargement = false);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text('Erreur : $e'),
+                              backgroundColor: const Color(0xFFEF4444),
+                            ));
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kGreen, foregroundColor: Colors.white,
+                        disabledBackgroundColor: const Color(0xFFE5E7EB),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: chargement
+                          ? const SizedBox(width: 20, height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Enregistrer les modifications',
+                              style: TextStyle(fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ]),
+              ),
             ),
           ),
         ),
       ),
     );
+  }
+}
+
+// Champ texte pour le profil
+class _ChampProfil extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final String hint;
+  final IconData icon;
+  final TextInputType? keyboardType;
+  final String? Function(String?)? validator;
+
+  const _ChampProfil({
+    required this.controller, required this.label,
+    required this.hint, required this.icon,
+    this.keyboardType, this.validator,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kText)),
+      const SizedBox(height: 6),
+      TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        validator: validator,
+        style: const TextStyle(fontSize: 14, color: kText),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: kGrey, fontSize: 14),
+          prefixIcon: Icon(icon, color: kGrey, size: 18),
+          filled: true, fillColor: kLightGrey,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: kGreen, width: 2)),
+          errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFEF4444))),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+      ),
+    ]);
   }
 }
 

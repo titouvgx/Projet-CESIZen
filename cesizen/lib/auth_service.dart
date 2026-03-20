@@ -8,15 +8,12 @@ class AuthService {
   static final SupabaseClient _client = Supabase.instance.client;
 
   // ── Utilisateur courant ──────────────────────
-  // Retourne les infos Supabase Auth de l'utilisateur connecté
   static User? get currentAuthUser => _client.auth.currentUser;
-
-  // Retourne les infos métier depuis ta table utilisateur
   static Map<String, dynamic>? _userProfile;
   static Map<String, dynamic>? get userProfile => _userProfile;
 
   // ── État de connexion ────────────────────────
-  static bool get isLoggedIn => currentAuthUser != null;
+  static bool get isLoggedIn => currentAuthUser != null && _userProfile != null;
   static bool get isAdmin => _userProfile?['role'] == 'Admin';
   static bool get isCitoyen => _userProfile?['role'] == 'Citoyen connecte';
   static String? get role => _userProfile?['role'] as String?;
@@ -29,7 +26,6 @@ class AuthService {
     required String password,
   }) async {
     try {
-      // 1. Connexion via Supabase Auth
       final response = await _client.auth.signInWithPassword(
         email: email,
         password: password,
@@ -39,10 +35,8 @@ class AuthService {
         return AuthResult.error('Email ou mot de passe incorrect.');
       }
 
-      // 2. Récupère le profil depuis ta table utilisateur
       await _chargerProfil(response.user!.id);
 
-      // 3. Vérifie que le compte n'est pas supprimé
       if (_userProfile?['date_suppression'] != null) {
         await seDeconnecter();
         return AuthResult.error('Ce compte a été désactivé.');
@@ -64,7 +58,6 @@ class AuthService {
     required String password,
   }) async {
     try {
-      // 1. Crée le compte Supabase Auth
       final response = await _client.auth.signUp(
         email: email,
         password: password,
@@ -74,7 +67,16 @@ class AuthService {
         return AuthResult.error('Erreur lors de la création du compte.');
       }
 
-      // 2. Crée l'entrée dans ta table utilisateur
+      // Si email de confirmation requis → session null
+      // L'utilisateur doit confirmer son email avant de se connecter
+      if (response.session == null) {
+        return AuthResult.error(
+          'Un email de confirmation a été envoyé à $email. '
+          'Confirmez votre adresse puis connectez-vous.',
+        );
+      }
+
+      // Crée l'entrée dans ta table utilisateur
       await _client.from('utilisateur').insert({
         'id_utilisateur': response.user!.id,
         'nom': nom,
@@ -82,7 +84,6 @@ class AuthService {
         'role': 'Citoyen connecte',
       });
 
-      // 3. Charge le profil
       await _chargerProfil(response.user!.id);
 
       return AuthResult.success(role: 'Citoyen connecte');
@@ -115,7 +116,6 @@ class AuthService {
   }
 
   // ── Restaure la session au démarrage ─────────
-  // À appeler dans main.dart après Supabase.initialize
   static Future<void> restaurerSession() async {
     final user = _client.auth.currentUser;
     if (user != null) {

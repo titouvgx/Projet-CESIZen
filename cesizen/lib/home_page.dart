@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-
 import 'services/supabase_service.dart';
 import 'diagnosticpage.dart';
 import 'variables.dart';
 import 'widgets.dart';
 import 'contenu_page.dart';
+import 'questionnaire_page.dart';
 
 // ─────────────────────────────────────────────
 // APP
@@ -40,17 +40,12 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
 
   List<Map<String, dynamic>> _contenus = [];
-  List<Map<String, dynamic>> _questions = [];
-  List<Map<String, dynamic>> _choix = [];
-  Map<String, int> _reponses = {};
   bool _loadingContenus = true;
-  bool _loadingQuestions = true;
 
   @override
   void initState() {
     super.initState();
     _loadContenus();
-    _loadQuestions();
   }
 
   Future<void> _loadContenus() async {
@@ -66,21 +61,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _loadQuestions() async {
-    try {
-      final questions = await SupabaseService.getQuestions();
-      final choix = await SupabaseService.getChoixReponse();
-      setState(() {
-        _questions = questions;
-        _choix = choix;
-        _loadingQuestions = false;
-      });
-    } catch (e) {
-      print('❌ Erreur chargement questions : $e');
-      setState(() => _loadingQuestions = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
@@ -91,30 +71,11 @@ class _HomePageState extends State<HomePage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // ── NAVBAR depuis widgets.dart ──
             CESIZenNavBar(isMobile: isMobile, activePage: 'Accueil'),
-
             _HeroSection(isMobile: isMobile),
             _AboutSection(isMobile: isMobile),
-
-            _TrendingSection(
-              isMobile: isMobile,
-              contenus: _contenus,
-              loading: _loadingContenus,
-            ),
-
-            _DiagnosticSection(
-              isMobile: isMobile,
-              questions: _questions,
-              choix: _choix,
-              reponses: _reponses,
-              loading: _loadingQuestions,
-              onReponseChanged: (idQuestion, idChoix) {
-                setState(() => _reponses[idQuestion] = idChoix);
-              },
-            ),
-
-            // ── FOOTER depuis widgets.dart ──
+            _TrendingSection(isMobile: isMobile, contenus: _contenus, loading: _loadingContenus),
+            _DiagnosticSection(isMobile: isMobile),
             const CESIZenFooter(),
           ],
         ),
@@ -163,14 +124,7 @@ class _HeroText extends StatelessWidget {
         const SizedBox(height: 28),
         Row(children: [
           ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const DiagnosticPage(),
-                ),
-              );
-            },
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DiagnosticPage())),
             style: ElevatedButton.styleFrom(
               backgroundColor: kGreen, foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -180,14 +134,7 @@ class _HeroText extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           OutlinedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ContenuPage(),
-                ),
-              );
-            },
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ContenuPage())),
             style: OutlinedButton.styleFrom(
               foregroundColor: kGreen, side: const BorderSide(color: kGreen),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -208,10 +155,7 @@ class _HeroImage extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: SizedBox(
         height: 340,
-        child: Image.asset(
-          'assets/images/HEROzen.jpg',
-          fit: BoxFit.cover,
-        ),
+        child: Image.asset('assets/images/HEROzen.jpg', fit: BoxFit.cover),
       ),
     );
   }
@@ -295,11 +239,7 @@ class _TrendingSection extends StatelessWidget {
   final List<Map<String, dynamic>> contenus;
   final bool loading;
 
-  const _TrendingSection({
-    required this.isMobile,
-    required this.contenus,
-    required this.loading,
-  });
+  const _TrendingSection({required this.isMobile, required this.contenus, required this.loading});
 
   @override
   Widget build(BuildContext context) {
@@ -338,7 +278,7 @@ class _ArticleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final categorie = contenu['categorie'] as String? ?? '';
-    final tagColor = getCategorieColor(categorie); // ← depuis variables.dart
+    final tagColor = getCategorieColor(categorie);
 
     return Container(
       decoration: BoxDecoration(
@@ -346,107 +286,55 @@ class _ArticleCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2))],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: contenu['image_url'] != null
-                ? Image.network(
-                    contenu['image_url'],
-                    height: 160,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      height: 160, color: const Color(0xFFD1D5DB),
-                      child: const Center(child: Icon(Icons.image, size: 36, color: Color(0xFF9CA3AF))),
-                    ),
-                  )
-                : Container(
-                    height: 160, color: const Color(0xFFD1D5DB),
-                    child: Center(
-                      child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.image, size: 36, color: Color(0xFF9CA3AF)),
-                        const SizedBox(height: 6),
-                        Text('Photo $categorie', textAlign: TextAlign.center,
-                            style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 11)),
-                      ]),
-                    ),
-                  ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: tagColor.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(categorie,
-                    style: TextStyle(color: tagColor, fontSize: 12, fontWeight: FontWeight.w600)),
-              ),
-              const SizedBox(height: 10),
-              Text(contenu['titre'] ?? '',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kText)),
-              const SizedBox(height: 8),
-              Text(
-                (contenu['texte'] ?? '').length > 100
-                    ? '${(contenu['texte'] as String).substring(0, 100)}...'
-                    : contenu['texte'] ?? '',
-                style: const TextStyle(fontSize: 13, color: kGrey, height: 1.5),
-              ),
-              const SizedBox(height: 12),
-              GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ContenuPage()),
-                );
-              },
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Lire l\'article',
-                    style: TextStyle(
-                      color: kGreen,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(width: 4),
-                  Icon(Icons.arrow_forward, size: 14, color: kGreen),
-                ],
-              ),
-              ),
-            ]),
-          ),
-        ],
-      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+          child: contenu['image_url'] != null
+              ? Image.network(contenu['image_url'], height: 160, width: double.infinity, fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(height: 160, color: const Color(0xFFD1D5DB),
+                      child: const Center(child: Icon(Icons.image, size: 36, color: Color(0xFF9CA3AF)))))
+              : Container(height: 160, color: const Color(0xFFD1D5DB),
+                  child: const Center(child: Icon(Icons.image, size: 36, color: Color(0xFF9CA3AF)))),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: tagColor.withOpacity(0.12), borderRadius: BorderRadius.circular(20)),
+              child: Text(categorie, style: TextStyle(color: tagColor, fontSize: 12, fontWeight: FontWeight.w600)),
+            ),
+            const SizedBox(height: 10),
+            Text(contenu['titre'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kText)),
+            const SizedBox(height: 8),
+            Text(
+              (contenu['texte'] ?? '').length > 100
+                  ? '${(contenu['texte'] as String).substring(0, 100)}...'
+                  : contenu['texte'] ?? '',
+              style: const TextStyle(fontSize: 13, color: kGrey, height: 1.5),
+            ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ContenuPage())),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                Text('Lire l\'article', style: TextStyle(color: kGreen, fontSize: 13, fontWeight: FontWeight.w600)),
+                SizedBox(width: 4),
+                Icon(Icons.arrow_forward, size: 14, color: kGreen),
+              ]),
+            ),
+          ]),
+        ),
+      ]),
     );
   }
 }
 
 // ─────────────────────────────────────────────
-// SECTION DIAGNOSTIC
+// SECTION DIAGNOSTIC — présentation Holmes et Rahe
 // ─────────────────────────────────────────────
 class _DiagnosticSection extends StatelessWidget {
   final bool isMobile;
-  final List<Map<String, dynamic>> questions;
-  final List<Map<String, dynamic>> choix;
-  final Map<String, int> reponses;
-  final bool loading;
-  final Function(String idQuestion, int idChoix) onReponseChanged;
-
-  const _DiagnosticSection({
-    required this.isMobile,
-    required this.questions,
-    required this.choix,
-    required this.reponses,
-    required this.loading,
-    required this.onReponseChanged,
-  });
+  const _DiagnosticSection({required this.isMobile});
 
   @override
   Widget build(BuildContext context) {
@@ -455,237 +343,131 @@ class _DiagnosticSection extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: isMobile ? 24 : 80, vertical: 60),
       child: isMobile
           ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _DiagnosticLeft(),
+              _DiagnosticTexte(),
               const SizedBox(height: 32),
-              _DiagnosticQuestions(
-                isMobile: isMobile,
-                questions: questions,
-                choix: choix,
-                reponses: reponses,
-                loading: loading,
-                onReponseChanged: onReponseChanged,
-              ),
+              _DiagnosticNiveaux(),
             ])
           : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Expanded(flex: 3, child: _DiagnosticLeft()),
+              Expanded(flex: 5, child: _DiagnosticTexte()),
               const SizedBox(width: 48),
-              Expanded(
-                flex: 7,
-                child: _DiagnosticQuestions(
-                  isMobile: isMobile,
-                  questions: questions,
-                  choix: choix,
-                  reponses: reponses,
-                  loading: loading,
-                  onReponseChanged: onReponseChanged,
-                ),
-              ),
+              Expanded(flex: 4, child: _DiagnosticNiveaux()),
             ]),
     );
   }
 }
 
-class _DiagnosticLeft extends StatelessWidget {
+class _DiagnosticTexte extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Évaluez votre bien-être',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kText)),
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Évaluez votre niveau de stress',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kText)),
+      const SizedBox(height: 12),
+      const Text(
+        'Notre diagnostic est basé sur l\'échelle de Holmes et Rahe, un outil scientifiquement reconnu. '
+        'Il évalue votre stress à partir des événements vécus durant les 12 derniers mois.',
+        style: TextStyle(fontSize: 14, color: kGrey, height: 1.6),
+      ),
+      const SizedBox(height: 8),
+      const Text(
+        'Cet outil n\'est pas un diagnostic médical. Il fournit des indications générales sur votre niveau de stress.',
+        style: TextStyle(fontSize: 13, color: kGrey, height: 1.6),
+      ),
+      const SizedBox(height: 24),
+
+      // 3 étapes résumées
+      _MiniEtape(icon: Icons.checklist_outlined, texte: '43 événements de vie à cocher'),
+      _MiniEtape(icon: Icons.calculate_outlined, texte: 'Score calculé automatiquement'),
+      _MiniEtape(icon: Icons.insights_outlined, texte: 'Résultat et recommandations personnalisés'),
+
+      const SizedBox(height: 28),
+      ElevatedButton.icon(
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuestionnairePage())),
+        icon: const Icon(Icons.play_arrow_rounded, size: 20),
+        label: const Text('Commencer le diagnostic', style: TextStyle(fontWeight: FontWeight.w600)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: kGreen, foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        ),
+      ),
+    ]);
+  }
+}
+
+class _MiniEtape extends StatelessWidget {
+  final IconData icon;
+  final String texte;
+  const _MiniEtape({required this.icon, required this.texte});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(children: [
+        Container(
+          width: 36, height: 36,
+          decoration: BoxDecoration(color: kGreenLight, borderRadius: BorderRadius.circular(8)),
+          child: Icon(icon, color: kGreen, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Text(texte, style: const TextStyle(fontSize: 14, color: kText)),
+      ]),
+    );
+  }
+}
+
+class _DiagnosticNiveaux extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Niveaux de stress', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kText)),
+        const SizedBox(height: 20),
+        _NiveauRow(color: const Color(0xFF10B981), icon: Icons.sentiment_satisfied_alt,
+            niveau: 'Faible', score: '< 150 pts'),
         const SizedBox(height: 12),
-        const Text(
-          'Notre questionnaire simple et anonyme vous permet d\'obtenir une évaluation générale de votre état de bien-être actuel.',
-          style: TextStyle(fontSize: 14, color: kGrey, height: 1.6),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Cet outil n\'est pas un diagnostic médical. Il vise à fournir des indications générales sur votre bien-être mental.',
-          style: TextStyle(fontSize: 13, color: kGrey, height: 1.6),
-        ),
-        const SizedBox(height: 28),
-        ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const DiagnosticPage(),
-              ),
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: kGreen, foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          ),
-          child: const Text('Commencer le diagnostic'),
-        ),
-      ],
+        _NiveauRow(color: const Color(0xFFF59E0B), icon: Icons.sentiment_neutral,
+            niveau: 'Modéré', score: '150–299 pts'),
+        const SizedBox(height: 12),
+        _NiveauRow(color: const Color(0xFFEF4444), icon: Icons.sentiment_dissatisfied,
+            niveau: 'Élevé', score: '≥ 300 pts'),
+      ]),
     );
   }
 }
 
-class _DiagnosticQuestions extends StatelessWidget {
-  final bool isMobile;
-  final List<Map<String, dynamic>> questions;
-  final List<Map<String, dynamic>> choix;
-  final Map<String, int> reponses;
-  final bool loading;
-  final Function(String idQuestion, int idChoix) onReponseChanged;
-
-  const _DiagnosticQuestions({
-    required this.isMobile,
-    required this.questions,
-    required this.choix,
-    required this.reponses,
-    required this.loading,
-    required this.onReponseChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (loading) {
-      return const Center(child: CircularProgressIndicator(color: kGreen));
-    }
-    if (questions.isEmpty) {
-      return const Text('Aucune question disponible.', style: TextStyle(color: kGrey));
-    }
-
-    return Column(
-      children: [
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: isMobile ? 1 : 3,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: isMobile ? 2.2 : 0.85,
-          ),
-          itemCount: questions.length > 3 ? 3 : questions.length,
-          itemBuilder: (context, index) {
-            final question = questions[index];
-            final idQuestion = question['id_question'] as String;
-            return _QuestionCard(
-              numero: index + 1,
-              question: question,
-              choix: choix,
-              selectedChoix: reponses[idQuestion],
-              onChanged: (idChoix) => onReponseChanged(idQuestion, idChoix),
-            );
-          },
-        ),
-        const SizedBox(height: 24),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: reponses.length >= 3 ? () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const DiagnosticPage()),
-              );
-            } : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kYellow,
-              foregroundColor: kText,
-              disabledBackgroundColor: const Color(0xFFE5E7EB),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-            child: Text(
-              reponses.length == questions.length
-                  ? 'Valider le diagnostic'
-                  : 'Accéder aux diagnostics complets',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _QuestionCard extends StatelessWidget {
-  final int numero;
-  final Map<String, dynamic> question;
-  final List<Map<String, dynamic>> choix;
-  final int? selectedChoix;
-  final Function(int idChoix) onChanged;
-
-  const _QuestionCard({
-    required this.numero,
-    required this.question,
-    required this.choix,
-    required this.selectedChoix,
-    required this.onChanged,
-  });
+class _NiveauRow extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final String niveau;
+  final String score;
+  const _NiveauRow({required this.color, required this.icon, required this.niveau, required this.score});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 2))],
+        color: color.withOpacity(0.07),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(
-              width: 24, height: 24,
-              decoration: BoxDecoration(color: kGreen, borderRadius: BorderRadius.circular(12)),
-              child: Center(
-                child: Text('$numero',
-                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                question['libelle'] ?? '',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kText, height: 1.4),
-              ),
-            ),
-          ]),
-          const SizedBox(height: 12),
-          const Divider(color: Color(0xFFE5E7EB), height: 1),
-          const SizedBox(height: 8),
-          ...choix.map((c) {
-            final idChoix = c['id_choix'] as int;
-            final libelle = c['libelle'] as String;
-            final isSelected = selectedChoix == idChoix;
-
-            return GestureDetector(
-              onTap: () => onChanged(idChoix),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 5),
-                child: Row(children: [
-                  Container(
-                    width: 18, height: 18,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: isSelected ? kGreen : const Color(0xFFD1D5DB), width: 2),
-                      color: isSelected ? kGreen : Colors.white,
-                    ),
-                    child: isSelected
-                        ? const Center(child: Icon(Icons.circle, size: 8, color: Colors.white))
-                        : null,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(libelle, style: TextStyle(
-                    fontSize: 13,
-                    color: isSelected ? kGreen : kGrey,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                  )),
-                ]),
-              ),
-            );
-          }),
-        ],
-      ),
+      child: Row(children: [
+        Icon(icon, color: color, size: 22),
+        const SizedBox(width: 12),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(niveau, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color)),
+          Text(score, style: TextStyle(fontSize: 12, color: color.withOpacity(0.8))),
+        ]),
+      ]),
     );
   }
 }

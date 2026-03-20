@@ -3,6 +3,8 @@ import 'services/supabase_service.dart';
 import 'questionnaire_page.dart';
 import 'widgets.dart';
 import 'variables.dart';
+import 'auth_service.dart';
+import 'login_popup.dart';
 
 // ─────────────────────────────────────────────
 // TYPES DE DIAGNOSTICS DISPONIBLES
@@ -24,7 +26,7 @@ const List<Map<String, String>> kTypesDiagnostics = [
     'duree': '6 min',
   },
   {
-    'theme': 'Sante',
+    'theme': 'Santé',
     'description': 'Un bilan général de votre bien-être mental et émotionnel.',
     'duree': '7 min',
   },
@@ -34,14 +36,7 @@ const List<Map<String, String>> kTypesDiagnostics = [
 // PAGE DIAGNOSTIC
 // ─────────────────────────────────────────────
 class DiagnosticPage extends StatefulWidget {
-  final bool isLoggedIn;
-  final String? idUtilisateur;
-
-  const DiagnosticPage({
-    super.key,
-    this.isLoggedIn = false,
-    this.idUtilisateur,
-  });
+  const DiagnosticPage({super.key});
 
   @override
   State<DiagnosticPage> createState() => _DiagnosticPageState();
@@ -54,23 +49,32 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.isLoggedIn && widget.idUtilisateur != null) {
-      _loadHistorique();
-    } else {
-      setState(() => _loadingHistorique = false);
-    }
+    _loadHistorique();
+  }
+
+  // Se redéclenche quand on revient sur la page (ex: après un diagnostic)
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadHistorique();
   }
 
   Future<void> _loadHistorique() async {
+    if (!AuthService.isLoggedIn || AuthService.idUtilisateur == null) {
+      setState(() => _loadingHistorique = false);
+      return;
+    }
     try {
-      final data = await SupabaseService.getHistoriqueDiagnostics(widget.idUtilisateur!);
-      setState(() {
-        _historique = data;
-        _loadingHistorique = false;
-      });
+      final data = await SupabaseService.getHistoriqueDiagnostics(AuthService.idUtilisateur!);
+      if (mounted) {
+        setState(() {
+          _historique = data;
+          _loadingHistorique = false;
+        });
+      }
     } catch (e) {
       print('❌ Erreur chargement historique : $e');
-      setState(() => _loadingHistorique = false);
+      if (mounted) setState(() => _loadingHistorique = false);
     }
   }
 
@@ -84,20 +88,15 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // ── NAVBAR depuis widgets.dart ──
-            CESIZenNavBar(isMobile: isMobile, activePage: 'Diagnostics', isLoggedIn: widget.isLoggedIn),
-
+            CESIZenNavBar(isMobile: isMobile, activePage: 'Diagnostics'),
             _DiagnosticHero(isMobile: isMobile),
             _ChoixDiagnosticSection(isMobile: isMobile),
-
             _HistoriqueSection(
               isMobile: isMobile,
-              isLoggedIn: widget.isLoggedIn,
               historique: _historique,
               loading: _loadingHistorique,
+              onRefresh: _loadHistorique,
             ),
-
-            // ── FOOTER depuis widgets.dart ──
             const CESIZenFooter(),
           ],
         ),
@@ -191,8 +190,8 @@ class _DiagnosticCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = data['theme'] ?? '';
-    final color = getThemeColor(theme);   // ← depuis variables.dart
-    final icon = getThemeIcon(theme);     // ← depuis variables.dart
+    final color = getThemeColor(theme);
+    final icon = getThemeIcon(theme);
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -217,31 +216,33 @@ class _DiagnosticCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(theme, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kText)),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(color: kLightGrey, borderRadius: BorderRadius.circular(20)),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          const Icon(Icons.access_time, size: 12, color: kGrey),
-                          const SizedBox(width: 4),
-                          Text(data['duree'] ?? '', style: const TextStyle(fontSize: 11, color: kGrey)),
-                        ]),
-                      ),
-                    ],
-                  ),
+                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                    Text(theme, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kText)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(color: kLightGrey, borderRadius: BorderRadius.circular(20)),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.access_time, size: 12, color: kGrey),
+                        const SizedBox(width: 4),
+                        Text(data['duree'] ?? '', style: const TextStyle(fontSize: 11, color: kGrey)),
+                      ]),
+                    ),
+                  ]),
                   const SizedBox(height: 6),
                   Text(data['description'] ?? '', style: const TextStyle(fontSize: 13, color: kGrey, height: 1.5)),
                 ]),
                 const SizedBox(height: 12),
                 ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
+                  onPressed: () async {
+                    await Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => QuestionnairePage(theme: theme)),
                     );
+                    // Rafraîchit l'historique au retour du questionnaire
+                    if (context.mounted) {
+                      final state = context.findAncestorStateOfType<_DiagnosticPageState>();
+                      state?._loadHistorique();
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: color, foregroundColor: Colors.white,
@@ -265,15 +266,15 @@ class _DiagnosticCard extends StatelessWidget {
 // ─────────────────────────────────────────────
 class _HistoriqueSection extends StatelessWidget {
   final bool isMobile;
-  final bool isLoggedIn;
   final List<Map<String, dynamic>> historique;
   final bool loading;
+  final VoidCallback onRefresh;
 
   const _HistoriqueSection({
     required this.isMobile,
-    required this.isLoggedIn,
     required this.historique,
     required this.loading,
+    required this.onRefresh,
   });
 
   @override
@@ -284,14 +285,25 @@ class _HistoriqueSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Historique de mes diagnostics',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kText)),
-          const SizedBox(height: 8),
-          const Text('Retrouvez tous vos diagnostics passés et suivez votre évolution.',
-              style: TextStyle(fontSize: 14, color: kGrey)),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Historique de mes diagnostics',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kText)),
+              SizedBox(height: 4),
+              Text('Retrouvez tous vos diagnostics passés et suivez votre évolution.',
+                  style: TextStyle(fontSize: 14, color: kGrey)),
+            ]),
+            // Bouton rafraîchir
+            if (AuthService.isLoggedIn)
+              IconButton(
+                onPressed: onRefresh,
+                icon: const Icon(Icons.refresh, color: kGreen),
+                tooltip: 'Rafraîchir',
+              ),
+          ]),
           const SizedBox(height: 32),
 
-          if (!isLoggedIn)
+          if (!AuthService.isLoggedIn)
             _HistoriqueBloque()
           else if (loading)
             const Center(child: CircularProgressIndicator(color: kGreen))
@@ -364,9 +376,7 @@ class _HistoriqueBloque extends StatelessWidget {
                     style: TextStyle(fontSize: 13, color: kGrey)),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: () {
-                    // TODO: Navigation vers la page de connexion
-                  },
+                  onPressed: () => showLoginPopup(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kGreen, foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -444,8 +454,8 @@ class _HistoriqueItem extends StatelessWidget {
     final pageResultat = diagnostic['page_resultat'] as Map<String, dynamic>?;
     final niveau = pageResultat?['niveau_stress'] as String? ?? '—';
     final scoreTotal = diagnostic['score_total'] as int?;
-    final color = getThemeColor(theme);   // ← depuis variables.dart
-    final icon = getThemeIcon(theme);     // ← depuis variables.dart
+    final color = getThemeColor(theme);
+    final icon = getThemeIcon(theme);
 
     return GestureDetector(
       onTap: () => _showDetailPopup(context, diagnostic),
@@ -483,7 +493,7 @@ class _HistoriqueItem extends StatelessWidget {
             ),
             if (scoreTotal != null) ...[
               const SizedBox(height: 4),
-              Text('Score : $scoreTotal', style: const TextStyle(fontSize: 12, color: kGrey)),
+              Text('Score : $scoreTotal / 5', style: const TextStyle(fontSize: 12, color: kGrey)),
             ],
           ]),
           const SizedBox(width: 12),
@@ -499,6 +509,28 @@ class _HistoriqueItem extends StatelessWidget {
     final pageResultat = diagnostic['page_resultat'] as Map<String, dynamic>?;
     final scoreTotal = diagnostic['score_total'] as int?;
     final color = getThemeColor(theme);
+    final niveau = pageResultat?['niveau_stress'] as String? ?? '—';
+
+    // Couleur selon le niveau
+    Color niveauColor;
+    IconData niveauIcon;
+    switch (niveau) {
+      case 'Faible':
+        niveauColor = const Color(0xFF10B981);
+        niveauIcon = Icons.sentiment_satisfied_alt;
+        break;
+      case 'Modéré':
+        niveauColor = const Color(0xFFF59E0B);
+        niveauIcon = Icons.sentiment_neutral;
+        break;
+      case 'Élevé':
+        niveauColor = const Color(0xFFEF4444);
+        niveauIcon = Icons.sentiment_dissatisfied;
+        break;
+      default:
+        niveauColor = kGrey;
+        niveauIcon = Icons.help_outline;
+    }
 
     showDialog(
       context: context,
@@ -507,81 +539,113 @@ class _HistoriqueItem extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(28),
           constraints: const BoxConstraints(maxWidth: 480),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Row(children: [
-                  Container(
-                    width: 40, height: 40,
-                    decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                    child: Icon(getThemeIcon(theme), color: color, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(theme, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kText)),
-                    Text(date, style: const TextStyle(fontSize: 12, color: kGrey)),
-                  ]),
-                ]),
-                IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: kGrey)),
-              ]),
-              const SizedBox(height: 20),
-              const Divider(color: Color(0xFFE5E7EB)),
-              const SizedBox(height: 20),
-
-              if (scoreTotal != null) ...[
-                const Text('Score total', style: TextStyle(fontSize: 13, color: kGrey)),
-                const SizedBox(height: 6),
-                Text('$scoreTotal points',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
-                const SizedBox(height: 20),
-              ],
-
-              if (pageResultat != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.07),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: color.withOpacity(0.2)),
-                  ),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(children: [
-                      Icon(Icons.assessment_outlined, color: color, size: 18),
-                      const SizedBox(width: 8),
-                      Text('Niveau : ${pageResultat['niveau_stress'] ?? '—'}',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color)),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Row(children: [
+                    Container(
+                      width: 40, height: 40,
+                      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                      child: Icon(getThemeIcon(theme), color: color, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(theme, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kText)),
+                      Text(date, style: const TextStyle(fontSize: 12, color: kGrey)),
                     ]),
-                    const SizedBox(height: 8),
-                    Text(pageResultat['message'] ?? '',
-                        style: const TextStyle(fontSize: 13, color: kText, height: 1.5)),
-                    if (pageResultat['recommandations'] != null) ...[
-                      const SizedBox(height: 10),
-                      const Text('Recommandations :',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kGrey)),
-                      const SizedBox(height: 4),
-                      Text(pageResultat['recommandations'],
-                          style: const TextStyle(fontSize: 13, color: kGrey, height: 1.5)),
-                    ],
                   ]),
+                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: kGrey)),
+                ]),
+                const SizedBox(height: 20),
+                const Divider(color: Color(0xFFE5E7EB)),
+                const SizedBox(height: 20),
+
+                // Score + Niveau
+                if (scoreTotal != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: niveauColor.withOpacity(0.07),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: niveauColor.withOpacity(0.2)),
+                    ),
+                    child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+                      Column(children: [
+                        Text('$scoreTotal / 5',
+                            style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: niveauColor)),
+                        const SizedBox(height: 4),
+                        const Text('Score', style: TextStyle(fontSize: 12, color: kGrey)),
+                      ]),
+                      Container(width: 1, height: 40, color: niveauColor.withOpacity(0.2)),
+                      Column(children: [
+                        Icon(niveauIcon, color: niveauColor, size: 28),
+                        const SizedBox(height: 4),
+                        Text(niveau, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: niveauColor)),
+                      ]),
+                    ]),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                // Message + recommandations
+                if (pageResultat != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: kLightGrey,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        Icon(Icons.info_outline, color: niveauColor, size: 16),
+                        const SizedBox(width: 8),
+                        const Text('Message', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kGrey)),
+                      ]),
+                      const SizedBox(height: 8),
+                      Text(pageResultat['message'] ?? '',
+                          style: const TextStyle(fontSize: 13, color: kText, height: 1.5)),
+                      if (pageResultat['recommandations'] != null) ...[
+                        const SizedBox(height: 12),
+                        Row(children: [
+                          Icon(Icons.lightbulb_outline, color: niveauColor, size: 16),
+                          const SizedBox(width: 8),
+                          const Text('Recommandations', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kGrey)),
+                        ]),
+                        const SizedBox(height: 8),
+                        Text(pageResultat['recommandations'],
+                            style: const TextStyle(fontSize: 13, color: kText, height: 1.5)),
+                      ],
+                    ]),
+                  ),
+                ] else ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(color: kLightGrey, borderRadius: BorderRadius.circular(12)),
+                    child: const Text('Aucun résultat disponible pour ce diagnostic.',
+                        style: TextStyle(fontSize: 13, color: kGrey)),
+                  ),
+                ],
+
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kGreen, foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text('Fermer', style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
                 ),
               ],
-
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kGreen, foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text('Fermer', style: TextStyle(fontWeight: FontWeight.w600)),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'services/supabase_service.dart';
 import 'diagnosticpage.dart';
 import 'variables.dart';
@@ -167,7 +167,7 @@ class _HeroText extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const DiagnosticPage(isLoggedIn: false),
+                  builder: (_) => const DiagnosticPage(),
                 ),
               );
             },
@@ -181,7 +181,12 @@ class _HeroText extends StatelessWidget {
           const SizedBox(width: 12),
           OutlinedButton(
             onPressed: () {
-              // TODO: Navigator.push vers ContenuPage() quand la page sera créée
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ContenuPage(),
+                ),
+              );
             },
             style: OutlinedButton.styleFrom(
               foregroundColor: kGreen, side: const BorderSide(color: kGreen),
@@ -504,7 +509,7 @@ class _DiagnosticLeft extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const DiagnosticPage(isLoggedIn: false),
+                builder: (_) => const DiagnosticPage(),
               ),
             );
           },

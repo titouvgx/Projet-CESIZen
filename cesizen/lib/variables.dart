@@ -16,7 +16,7 @@ const kText       = Color(0xFF1F2937);
 // ─────────────────────────────────────────────
 Color getCategorieColor(String? categorie) {
   switch (categorie?.toLowerCase()) {
-    case 'bien-être': return const Color(0xFF10B981);
+    case 'santé': return const Color(0xFF10B981);
     case 'relations': return const Color(0xFF3B82F6);
     case 'sommeil':   return const Color(0xFF8B5CF6);
     case 'stress':    return const Color(0xFFEF4444);
@@ -32,7 +32,7 @@ Color getThemeColor(String? theme) {
     case 'stress':    return const Color(0xFFEF4444);
     case 'sommeil':   return const Color(0xFF8B5CF6);
     case 'relations': return const Color(0xFF3B82F6);
-    case 'bien-être': return const Color(0xFF10B981);
+    case 'santé': return const Color(0xFF10B981);
     default:          return kGreen;
   }
 }
@@ -42,7 +42,7 @@ IconData getThemeIcon(String? theme) {
     case 'stress':    return Icons.self_improvement;
     case 'sommeil':   return Icons.bedtime_outlined;
     case 'relations': return Icons.people_outline;
-    case 'bien-être': return Icons.favorite_border;
+    case 'santé': return Icons.favorite_border;
     default:          return Icons.psychology_outlined;
   }
 }

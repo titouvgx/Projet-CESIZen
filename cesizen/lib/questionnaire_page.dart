@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'services/supabase_service.dart';
 import 'widgets.dart';
 import 'variables.dart';
+import 'auth_service.dart';
 
 // ─────────────────────────────────────────────
 // PAGE QUESTIONNAIRE
@@ -65,13 +66,27 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
   }
 
   int _calculerScore() {
-    int total = 0;
-    for (final idChoix in _reponses.values) {
-      final choix = _choix.firstWhere((c) => c['id_choix'] == idChoix, orElse: () => {});
-      total += (choix['score'] as int? ?? 0);
-    }
-    return total;
+  if (_questions.isEmpty || _choix.isEmpty) return 0;
+  
+  int total = 0;
+  for (final idChoix in _reponses.values) {
+    final choix = _choix.firstWhere(
+      (c) => c['id_choix'] == idChoix,
+      orElse: () => {},
+    );
+    total += (choix['score'] as int? ?? 0);
   }
+
+  // Score max = nb questions × score max par question (4)
+  final scoreMax = _questions.length * 4;
+  if (scoreMax == 0) return 0;
+
+  // Ramène sur 5 et arrondit
+  final scoreSur5 = (total / scoreMax * 5).round();
+  
+  print('🔢 Score brut: $total / $scoreMax → Score/5: $scoreSur5');
+  return scoreSur5;
+}
 
   Future<void> _soumettre() async {
     if (_reponses.length < _questions.length) return;
@@ -79,10 +94,16 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
 
     try {
       final scoreTotal = _calculerScore();
-      final pageResultat = await SupabaseService.getPageResultat(scoreTotal);
+      final pageResultat = await SupabaseService.getPageResultat(
+      scoreTotal,
+      theme: widget.theme,
+    );
 
-      if (widget.isLoggedIn && widget.idUtilisateur != null) {
-        final idDiagnostic = await SupabaseService.createDiagnostic(widget.idUtilisateur!);
+      if (AuthService.isLoggedIn && AuthService.idUtilisateur != null) {
+        final idDiagnostic = await SupabaseService.createDiagnostic(
+          AuthService.idUtilisateur!,
+          theme: widget.theme,
+        );
         final reponses = _reponses.entries.map((e) => {
           'id_question': e.key,
           'id_choix': e.value,
@@ -101,7 +122,28 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
   }
 
   void _showResultat(int score, Map<String, dynamic>? pageResultat) {
-    final color = getThemeColor(widget.theme); // ← depuis variables.dart
+    final niveau = pageResultat?['niveau_stress'] as String? ?? '—';
+
+    // Couleur + icône selon le niveau
+    Color niveauColor;
+    IconData niveauIcon;
+    switch (niveau) {
+      case 'Faible':
+        niveauColor = const Color(0xFF10B981);
+        niveauIcon = Icons.sentiment_satisfied_alt;
+        break;
+      case 'Modéré':
+        niveauColor = const Color(0xFFF59E0B);
+        niveauIcon = Icons.sentiment_neutral;
+        break;
+      case 'Élevé':
+        niveauColor = const Color(0xFFEF4444);
+        niveauIcon = Icons.sentiment_dissatisfied;
+        break;
+      default:
+        niveauColor = kGrey;
+        niveauIcon = Icons.help_outline;
+    }
 
     showDialog(
       context: context,
@@ -111,111 +153,153 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
         child: Container(
           padding: const EdgeInsets.all(32),
           constraints: const BoxConstraints(maxWidth: 480),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 64, height: 64,
-                decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-                child: Icon(Icons.check_circle_outline, color: color, size: 36),
-              ),
-              const SizedBox(height: 20),
-              Text('Diagnostic ${widget.theme} terminé !',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kText)),
-              const SizedBox(height: 8),
-              Text('Score total : $score points',
-                  style: TextStyle(fontSize: 16, color: color, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
 
-              if (pageResultat != null) ...[
+                // ── Icône niveau ──
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  width: 72, height: 72,
+                  decoration: BoxDecoration(color: niveauColor.withOpacity(0.1), shape: BoxShape.circle),
+                  child: Icon(niveauIcon, color: niveauColor, size: 40),
+                ),
+                const SizedBox(height: 16),
+
+                Text('Diagnostic ${widget.theme} terminé !',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kText)),
+                const SizedBox(height: 20),
+
+                // ── Score + Niveau ──
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.07),
+                    color: niveauColor.withOpacity(0.07),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: color.withOpacity(0.2)),
+                    border: Border.all(color: niveauColor.withOpacity(0.2)),
                   ),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(children: [
-                      Icon(Icons.assessment_outlined, color: color, size: 18),
-                      const SizedBox(width: 8),
-                      Text('Niveau : ${pageResultat['niveau_stress']}',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color)),
-                    ]),
-                    const SizedBox(height: 10),
-                    Text(pageResultat['message'] ?? '',
-                        style: const TextStyle(fontSize: 13, color: kText, height: 1.5)),
-                    if (pageResultat['recommandations'] != null) ...[
-                      const SizedBox(height: 10),
-                      const Text('Recommandations :',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kGrey)),
-                      const SizedBox(height: 4),
-                      Text(pageResultat['recommandations'],
-                          style: const TextStyle(fontSize: 13, color: kGrey, height: 1.5)),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Column(children: [
+                        Text('$score / 5',
+                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: niveauColor)),
+                        const SizedBox(height: 4),
+                        const Text('Score', style: TextStyle(fontSize: 12, color: kGrey)),
+                      ]),
+                      Container(width: 1, height: 40, color: niveauColor.withOpacity(0.2)),
+                      Column(children: [
+                        Text(niveau,
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: niveauColor)),
+                        const SizedBox(height: 4),
+                        const Text('Niveau', style: TextStyle(fontSize: 12, color: kGrey)),
+                      ]),
                     ],
-                  ]),
+                  ),
                 ),
-                const SizedBox(height: 16),
-              ] else ...[
-                const Text('Aucun résultat trouvé pour ce score.',
-                    style: TextStyle(fontSize: 13, color: kGrey)),
-                const SizedBox(height: 16),
-              ],
+                const SizedBox(height: 20),
 
-              if (!widget.isLoggedIn)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: kLightGrey, borderRadius: BorderRadius.circular(8)),
-                  child: const Row(children: [
-                    Icon(Icons.info_outline, size: 16, color: kGrey),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Connectez-vous pour sauvegarder vos résultats et suivre votre évolution.',
-                        style: TextStyle(fontSize: 12, color: kGrey),
+                // ── Message + recommandations ──
+                if (pageResultat != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: kLightGrey,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        Icon(Icons.info_outline, color: niveauColor, size: 16),
+                        const SizedBox(width: 8),
+                        const Text('Message', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kGrey)),
+                      ]),
+                      const SizedBox(height: 8),
+                      Text(pageResultat['message'] ?? '',
+                          style: const TextStyle(fontSize: 13, color: kText, height: 1.5)),
+                      if (pageResultat['recommandations'] != null) ...[
+                        const SizedBox(height: 12),
+                        Row(children: [
+                          Icon(Icons.lightbulb_outline, color: niveauColor, size: 16),
+                          const SizedBox(width: 8),
+                          const Text('Recommandations', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kGrey)),
+                        ]),
+                        const SizedBox(height: 8),
+                        Text(pageResultat['recommandations'],
+                            style: const TextStyle(fontSize: 13, color: kText, height: 1.5)),
+                      ],
+                    ]),
+                  ),
+                ] else ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(color: kLightGrey, borderRadius: BorderRadius.circular(12)),
+                    child: const Text('Aucun résultat trouvé pour ce score.',
+                        style: TextStyle(fontSize: 13, color: kGrey)),
+                  ),
+                ],
+                const SizedBox(height: 16),
+
+                // ── Message si non connecté ──
+                if (!AuthService.isLoggedIn)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF3CD),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFFFE69C)),
+                    ),
+                    child: const Row(children: [
+                      Icon(Icons.lock_outline, size: 16, color: Color(0xFF856404)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Connectez-vous pour sauvegarder vos résultats.',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF856404)),
+                        ),
                       ),
-                    ),
-                  ]),
-                ),
+                    ]),
+                  ),
 
-              const SizedBox(height: 24),
-              Row(children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.pop(context);
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: kGreen, side: const BorderSide(color: kGreen),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                const SizedBox(height: 24),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.pop(context);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: kGrey, side: const BorderSide(color: Color(0xFFE5E7EB)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('Retour', style: TextStyle(fontWeight: FontWeight.w600)),
                     ),
-                    child: const Text('Retour', style: TextStyle(fontWeight: FontWeight.w600)),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      setState(() {
-                        _reponses = {};
-                        _questionActuelle = 0;
-                        _envoiEnCours = false;
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: kGreen, foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        setState(() {
+                          _reponses = {};
+                          _questionActuelle = 0;
+                          _envoiEnCours = false;
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kGreen, foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('Recommencer', style: TextStyle(fontWeight: FontWeight.w600)),
                     ),
-                    child: const Text('Recommencer', style: TextStyle(fontWeight: FontWeight.w600)),
                   ),
-                ),
-              ]),
-            ],
+                ]),
+              ],
+            ),
           ),
         ),
       ),
@@ -234,7 +318,7 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
         child: Column(
           children: [
             // ── NAVBAR depuis widgets.dart ──
-            CESIZenNavBar(isMobile: isMobile, activePage: 'Diagnostics', isLoggedIn: widget.isLoggedIn),
+            CESIZenNavBar(isMobile: isMobile, activePage: 'Diagnostics', isLoggedIn: AuthService.isLoggedIn),
 
             _QuestionnaireHero(theme: widget.theme, isMobile: isMobile),
 

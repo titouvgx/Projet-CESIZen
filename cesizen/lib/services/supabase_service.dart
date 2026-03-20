@@ -123,14 +123,17 @@ class SupabaseService {
   // ─────────────────────────────────────────────
 
   // Crée un nouveau diagnostic et retourne son id
-  static Future<String> createDiagnostic(String idUtilisateur) async {
-    final data = await _client
-        .from('diagnostic')
-        .insert({'id_utilisateur': idUtilisateur})
-        .select()
-        .single();
-    return data['id_diagnostic'];
-  }
+  static Future<String> createDiagnostic(String idUtilisateur, {String? theme}) async {
+  final data = await _client
+      .from('diagnostic')
+      .insert({
+        'id_utilisateur': idUtilisateur,
+        if (theme != null) 'theme': theme,
+      })
+      .select()
+      .single();
+  return data['id_diagnostic'];
+}
 
   // Sauvegarde le score total et la page résultat d'un diagnostic
   static Future<void> updateDiagnostic(String idDiagnostic, int scoreTotal, String idPageResultat) async {
@@ -183,16 +186,21 @@ class SupabaseService {
   // PAGE RÉSULTAT
   // ─────────────────────────────────────────────
 
-  // Trouve la page résultat correspondant à un score
-  static Future<Map<String, dynamic>?> getPageResultat(int scoreTotal) async {
-    final data = await _client
-        .from('page_resultat')
-        .select()
-        .lte('seuil_min', scoreTotal)
-        .gte('seuil_max', scoreTotal)
-        .maybeSingle();
-    return data;
+  // Trouve la page résultat correspondant à un score et par thème 
+  static Future<Map<String, dynamic>?> getPageResultat(int scoreTotal, {String? theme}) async {
+  var query = _client
+      .from('page_resultat')
+      .select()
+      .lte('seuil_min', scoreTotal)
+      .gte('seuil_max', scoreTotal);
+
+  if (theme != null) {
+    query = query.eq('theme', theme);
   }
+
+  final data = await query.maybeSingle();
+  return data;
+}
 
   // ─────────────────────────────────────────────
   // UTILISATEUR

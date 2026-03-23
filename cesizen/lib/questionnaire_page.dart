@@ -4,9 +4,6 @@ import 'widgets.dart';
 import 'variables.dart';
 import 'auth_service.dart';
 
-// ─────────────────────────────────────────────
-// PAGE QUESTIONNAIRE HOLMES ET RAHE
-// ─────────────────────────────────────────────
 class QuestionnairePage extends StatefulWidget {
   const QuestionnairePage({super.key});
 
@@ -15,9 +12,7 @@ class QuestionnairePage extends StatefulWidget {
 }
 
 class _QuestionnairePageState extends State<QuestionnairePage> {
-
   List<Map<String, dynamic>> _evenements = [];
-  // id_evenement → nombre de fois vécu (0 = non vécu)
   Map<int, int> _quantites = {};
   bool _loading = true;
   bool _envoiEnCours = false;
@@ -34,7 +29,6 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
       if (mounted) {
         setState(() {
           _evenements = data;
-          // Initialise toutes les quantités à 0
           for (final ev in data) {
             _quantites[ev['id_evenement'] as int] = 0;
           }
@@ -42,26 +36,22 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
         });
       }
     } catch (e) {
-      print('❌ Erreur chargement événements : $e');
+      print('❌ Erreur : $e');
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  // Score total = somme de (quantité × score) pour chaque événement
   int _calculerScore() {
     int total = 0;
     for (final ev in _evenements) {
       final id = ev['id_evenement'] as int;
       final score = ev['score'] as int;
-      final quantite = _quantites[id] ?? 0;
-      total += quantite * score;
+      total += (_quantites[id] ?? 0) * score;
     }
     return total;
   }
 
-  // Nombre d'événements avec quantité > 0
-  int get _nbEvenementsCoches =>
-      _quantites.values.where((q) => q > 0).length;
+  int get _nbEvenementsCoches => _quantites.values.where((q) => q > 0).length;
 
   Future<void> _soumettre() async {
     if (_nbEvenementsCoches == 0) {
@@ -71,33 +61,24 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
       ));
       return;
     }
-
     setState(() => _envoiEnCours = true);
-
     try {
       final scoreTotal = _calculerScore();
       final pageResultat = await SupabaseService.getPageResultat(scoreTotal);
 
       if (AuthService.isLoggedIn && AuthService.idUtilisateur != null) {
         final idDiagnostic = await SupabaseService.createDiagnostic(AuthService.idUtilisateur!);
-
-        // Sauvegarde chaque événement autant de fois qu'indiqué
-        final List<int> idEvenements = [];
+        final List<int> ids = [];
         for (final ev in _evenements) {
           final id = ev['id_evenement'] as int;
-          final quantite = _quantites[id] ?? 0;
-          for (int i = 0; i < quantite; i++) {
-            idEvenements.add(id);
-          }
+          final q = _quantites[id] ?? 0;
+          for (int i = 0; i < q; i++) ids.add(id);
         }
-        await SupabaseService.saveReponsesHolmes(idDiagnostic, idEvenements);
-
+        await SupabaseService.saveReponsesHolmes(idDiagnostic, ids);
         if (pageResultat != null) {
-          await SupabaseService.updateDiagnostic(
-            idDiagnostic, scoreTotal, pageResultat['id_page_resultat']);
+          await SupabaseService.updateDiagnostic(idDiagnostic, scoreTotal, pageResultat['id_page_resultat']);
         }
       }
-
       if (mounted) _showResultat(scoreTotal, pageResultat);
     } catch (e) {
       print('❌ Erreur soumission : $e');
@@ -107,7 +88,6 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
 
   void _showResultat(int score, Map<String, dynamic>? pageResultat) {
     final niveau = pageResultat?['niveau_stress'] as String? ?? '—';
-
     Color niveauColor; IconData niveauIcon;
     switch (niveau) {
       case 'Faible': niveauColor = const Color(0xFF10B981); niveauIcon = Icons.sentiment_satisfied_alt; break;
@@ -122,21 +102,17 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(28),
           constraints: const BoxConstraints(maxWidth: 480),
           child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-
             Container(width: 72, height: 72,
               decoration: BoxDecoration(color: niveauColor.withOpacity(0.1), shape: BoxShape.circle),
               child: Icon(niveauIcon, color: niveauColor, size: 40)),
             const SizedBox(height: 16),
-
-            const Text('Diagnostic de stress terminé !',
-                textAlign: TextAlign.center,
+            const Text('Diagnostic terminé !', textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kText)),
             const SizedBox(height: 20),
 
-            // Score + Niveau
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               decoration: BoxDecoration(
@@ -157,14 +133,10 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
               ]),
             ),
             const SizedBox(height: 12),
-
-            Text(
-              '$_nbEvenementsCoches événement${_nbEvenementsCoches > 1 ? 's' : ''} renseigné${_nbEvenementsCoches > 1 ? 's' : ''}',
-              style: const TextStyle(fontSize: 13, color: kGrey),
-            ),
+            Text('$_nbEvenementsCoches événement${_nbEvenementsCoches > 1 ? 's' : ''} renseigné${_nbEvenementsCoches > 1 ? 's' : ''}',
+                style: const TextStyle(fontSize: 13, color: kGrey)),
             const SizedBox(height: 16),
 
-            // Message + recommandations
             if (pageResultat != null) ...[
               Container(
                 width: double.infinity, padding: const EdgeInsets.all(16),
@@ -185,8 +157,7 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
                       const Text('Recommandations', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kGrey)),
                     ]),
                     const SizedBox(height: 8),
-                    Text(pageResultat['recommandations'],
-                        style: const TextStyle(fontSize: 13, color: kText, height: 1.5)),
+                    Text(pageResultat['recommandations'], style: const TextStyle(fontSize: 13, color: kText, height: 1.5)),
                   ],
                 ]),
               ),
@@ -274,8 +245,7 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kText)),
               const SizedBox(height: 8),
               const Text(
-                'Pour chaque événement vécu durant les 12 derniers mois, indiquez combien de fois il s\'est produit. '
-                'Le score est calculé automatiquement.',
+                'Pour chaque événement vécu durant les 12 derniers mois, indiquez combien de fois il s\'est produit.',
                 style: TextStyle(fontSize: 14, color: kGrey, height: 1.5),
               ),
             ]),
@@ -284,7 +254,7 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
           // Contenu
           Container(
             color: Colors.white,
-            padding: EdgeInsets.symmetric(horizontal: isMobile ? 24 : 80, vertical: 40),
+            padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 80, vertical: 32),
             child: _loading
                 ? const Center(child: Padding(
                     padding: EdgeInsets.all(60),
@@ -294,40 +264,38 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
                     // Score en temps réel
                     if (_nbEvenementsCoches > 0)
                       Container(
-                        margin: const EdgeInsets.only(bottom: 24),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        margin: const EdgeInsets.only(bottom: 20),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
                           color: kGreenLight, borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: kGreen.withOpacity(0.3)),
                         ),
                         child: Row(children: [
-                          const Icon(Icons.calculate_outlined, color: kGreen, size: 20),
-                          const SizedBox(width: 12),
+                          const Icon(Icons.calculate_outlined, color: kGreen, size: 18),
+                          const SizedBox(width: 10),
                           Expanded(child: Text(
-                            '$_nbEvenementsCoches événement${_nbEvenementsCoches > 1 ? 's' : ''} renseigné${_nbEvenementsCoches > 1 ? 's' : ''} — Score actuel : $scoreActuel points',
-                            style: const TextStyle(fontSize: 14, color: kGreenDark, fontWeight: FontWeight.w600),
+                            '$_nbEvenementsCoches événement${_nbEvenementsCoches > 1 ? 's' : ''} — Score : $scoreActuel pts',
+                            style: const TextStyle(fontSize: 13, color: kGreenDark, fontWeight: FontWeight.w600),
                           )),
                         ]),
                       ),
 
-                    // En-tête colonnes
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: kLightGrey, borderRadius: BorderRadius.circular(8),
+                    // En-tête colonnes — desktop seulement
+                    if (!isMobile)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(color: kLightGrey, borderRadius: BorderRadius.circular(8)),
+                        child: const Row(children: [
+                          Expanded(child: Text('Événement',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kGrey))),
+                          SizedBox(width: 8),
+                          SizedBox(width: 52, child: Text('Points', textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kGrey))),
+                          SizedBox(width: 8),
+                          SizedBox(width: 106, child: Center(child: Text('Nombre de fois',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kGrey)))),
+                        ]),
                       ),
-                      child: Row(children: [
-                        const Expanded(child: Text('Événement',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kGrey))),
-                        const SizedBox(width: 8),
-                        const Text('Points', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kGrey)),
-                        const SizedBox(width: 16),
-                        const SizedBox(width: 120, child: Center(
-                          child: Text('Nombre de fois',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kGrey)),
-                        )),
-                      ]),
-                    ),
                     const SizedBox(height: 8),
 
                     // Liste des événements
@@ -337,95 +305,91 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
                       final quantite = _quantites[id] ?? 0;
                       final actif = quantite > 0;
 
+                      // Sélecteur +/-
+                      Widget selecteur = Row(mainAxisSize: MainAxisSize.min, children: [
+                        GestureDetector(
+                          onTap: quantite > 0
+                              ? () => setState(() => _quantites[id] = quantite - 1)
+                              : null,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 100),
+                            width: 30, height: 30,
+                            decoration: BoxDecoration(
+                              color: quantite > 0 ? kGreen : const Color(0xFFE5E7EB),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(Icons.remove, size: 14,
+                                color: quantite > 0 ? Colors.white : kGrey),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 34,
+                          child: Text('$quantite', textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold,
+                                  color: actif ? kGreenDark : kGrey)),
+                        ),
+                        GestureDetector(
+                          onTap: () => setState(() => _quantites[id] = quantite + 1),
+                          child: Container(
+                            width: 30, height: 30,
+                            decoration: BoxDecoration(color: kGreen, borderRadius: BorderRadius.circular(8)),
+                            child: const Icon(Icons.add, size: 14, color: Colors.white),
+                          ),
+                        ),
+                      ]);
+
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 14, vertical: isMobile ? 12 : 10),
                         decoration: BoxDecoration(
                           color: actif ? kGreenLight : Colors.white,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: actif ? kGreen : const Color(0xFFE5E7EB),
-                            width: actif ? 2 : 1,
-                          ),
+                          border: Border.all(color: actif ? kGreen : const Color(0xFFE5E7EB), width: actif ? 2 : 1),
                         ),
-                        child: Row(children: [
-                          // Libellé
-                          Expanded(child: Text(
-                            ev['libelle'] as String,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: actif ? kGreenDark : kText,
-                              fontWeight: actif ? FontWeight.w600 : FontWeight.normal,
-                            ),
-                          )),
-                          const SizedBox(width: 8),
-
-                          // Points
-                          SizedBox(
-                            width: 48,
-                            child: Text(
-                              '$score pts',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: actif ? kGreenDark : kGrey,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-
-                          // Sélecteur de nombre
-                          SizedBox(
-                            width: 120,
-                            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                              // Bouton -
-                              GestureDetector(
-                                onTap: quantite > 0
-                                    ? () => setState(() => _quantites[id] = quantite - 1)
-                                    : null,
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 100),
-                                  width: 32, height: 32,
-                                  decoration: BoxDecoration(
-                                    color: quantite > 0 ? kGreen : const Color(0xFFE5E7EB),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Icon(Icons.remove, size: 16,
-                                      color: quantite > 0 ? Colors.white : kGrey),
+                        child: isMobile
+                            // ── Mobile : libellé en haut, pts + sélecteur en bas ──
+                            ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text(ev['libelle'] as String,
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        color: actif ? kGreenDark : kText,
+                                        fontWeight: actif ? FontWeight.w600 : FontWeight.normal)),
+                                const SizedBox(height: 10),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                          color: actif ? kGreen.withOpacity(0.15) : kLightGrey,
+                                          borderRadius: BorderRadius.circular(20)),
+                                      child: Text('$score pts',
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: actif ? kGreenDark : kGrey,
+                                              fontWeight: FontWeight.w600)),
+                                    ),
+                                    selecteur,
+                                  ],
                                 ),
-                              ),
-
-                              // Nombre
-                              SizedBox(
-                                width: 40,
-                                child: Text(
-                                  '$quantite',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: actif ? kGreenDark : kGrey,
-                                  ),
-                                ),
-                              ),
-
-                              // Bouton +
-                              GestureDetector(
-                                onTap: () => setState(() => _quantites[id] = quantite + 1),
-                                child: Container(
-                                  width: 32, height: 32,
-                                  decoration: BoxDecoration(
-                                    color: kGreen,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(Icons.add, size: 16, color: Colors.white),
-                                ),
-                              ),
-                            ]),
-                          ),
-                        ]),
+                              ])
+                            // ── Desktop : 1 ligne ──
+                            : Row(children: [
+                                Expanded(child: Text(ev['libelle'] as String,
+                                    style: TextStyle(fontSize: 14,
+                                        color: actif ? kGreenDark : kText,
+                                        fontWeight: actif ? FontWeight.w600 : FontWeight.normal))),
+                                const SizedBox(width: 8),
+                                SizedBox(width: 52,
+                                    child: Text('$score pts', textAlign: TextAlign.center,
+                                        style: TextStyle(fontSize: 12,
+                                            color: actif ? kGreenDark : kGrey,
+                                            fontWeight: FontWeight.w600))),
+                                const SizedBox(width: 8),
+                                SizedBox(width: 106, child: Center(child: selecteur)),
+                              ]),
                       );
                     }),
 
@@ -450,6 +414,7 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
                                     ? 'Indiquez les événements vécus puis validez'
                                     : 'Valider mon diagnostic (score : $scoreActuel pts)',
                                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                                textAlign: TextAlign.center,
                               ),
                       ),
                     ),

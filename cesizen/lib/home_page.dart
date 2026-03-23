@@ -115,34 +115,37 @@ class _HeroText extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Prenez soin de\nvotre santé mentale',
-            style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: kText, height: 1.3)),
+            style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: kText, height: 1.3)),
         const SizedBox(height: 16),
         const Text(
           'CESIZen est une plateforme publique pour informer, prévenir et sensibiliser sur les enjeux de santé mentale de manière apaisante et pédagogique.',
           style: TextStyle(fontSize: 15, color: kGrey, height: 1.6),
         ),
         const SizedBox(height: 28),
-        Row(children: [
-          ElevatedButton(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DiagnosticPage())),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kGreen, foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            ElevatedButton(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DiagnosticPage())),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kGreen, foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              ),
+              child: const Text('Faire un diagnostic'),
             ),
-            child: const Text('Faire un diagnostic'),
-          ),
-          const SizedBox(width: 12),
-          OutlinedButton(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ContenuPage())),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: kGreen, side: const BorderSide(color: kGreen),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            OutlinedButton(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ContenuPage())),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: kGreen, side: const BorderSide(color: kGreen),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              ),
+              child: const Text('Découvrir les contenus'),
             ),
-            child: const Text('Découvrir les contenus'),
-          ),
-        ]),
+          ],
+        ),
       ],
     );
   }
@@ -411,7 +414,9 @@ class _MiniEtape extends StatelessWidget {
           child: Icon(icon, color: kGreen, size: 18),
         ),
         const SizedBox(width: 12),
-        Text(texte, style: const TextStyle(fontSize: 14, color: kText)),
+        Expanded(
+          child: Text(texte, style: const TextStyle(fontSize: 14, color: kText)),
+        ),
       ]),
     );
   }

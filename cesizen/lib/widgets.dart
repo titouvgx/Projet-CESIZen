@@ -6,6 +6,7 @@ import 'contenu_page.dart';
 import 'aide_page.dart';
 import 'login_popup.dart';
 import 'auth_service.dart';
+import 'espace_page.dart';
 
 // ─────────────────────────────────────────────
 // NAVBAR PARTAGÉE
@@ -24,6 +25,7 @@ class CESIZenNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 1100;
     return Container(
       color: Colors.white,
       padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 12),
@@ -39,7 +41,7 @@ class CESIZenNavBar extends StatelessWidget {
             child: Row(children: [
               Image.asset('assets/images/logoCesiZen.png', height: isMobile ? 36 : 48, fit: BoxFit.contain),
               const SizedBox(width: 8),
-              // Phrase logo cachée sur mobile
+              // Phrase logo 
               if (!isMobile)
                 Image.asset('assets/images/PhraseLogoCesiZen.png', height: 40, fit: BoxFit.contain),
             ]),
@@ -50,13 +52,13 @@ class CESIZenNavBar extends StatelessWidget {
             _NavItem(label: 'Accueil', isActive: activePage == 'Accueil', destination: const HomePage()),
             _NavItem(label: 'Diagnostics', isActive: activePage == 'Diagnostics', destination: const DiagnosticPage()),
             _NavItem(label: 'Contenus', isActive: activePage == 'Contenus', destination: const ContenuPage()),
-            _NavItem(label: 'Votre espace', isActive: activePage == 'Votre espace'),
+            _NavItem(label: 'Votre espace', isActive: activePage == 'Votre espace', destination: const EspacePage()),
             _NavItem(label: 'Besoin d\'aide ?', isActive: activePage == 'Aide', destination: const AidePage()),
             const SizedBox(width: 16),
-            // Bouton auth seulement sur desktop
+            
             _AuthButton(),
           ] else ...[
-            // Sur mobile : juste le hamburger
+            //mobile hamburger
             IconButton(
               onPressed: () => _showMobileMenu(context),
               icon: const Icon(Icons.menu, color: kText),
@@ -68,8 +70,9 @@ class CESIZenNavBar extends StatelessWidget {
   }
 
   void _showMobileMenu(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 1100;
     showModalBottomSheet(
-      context: context,
+      context: context,   
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (context) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
@@ -77,10 +80,10 @@ class CESIZenNavBar extends StatelessWidget {
           _MobileMenuItem(label: 'Accueil', icon: Icons.home_outlined, destination: const HomePage()),
           _MobileMenuItem(label: 'Diagnostics', icon: Icons.psychology_outlined, destination: const DiagnosticPage()),
           _MobileMenuItem(label: 'Contenus', icon: Icons.article_outlined, destination: const ContenuPage()),
-          const _MobileMenuItem(label: 'Votre espace', icon: Icons.person_outline),
+          _MobileMenuItem(label: 'Votre espace', icon: Icons.person_outline, destination: const EspacePage()),
           _MobileMenuItem(label: 'Besoin d\'aide ?', icon: Icons.help_outline, destination: const AidePage()),
           const Divider(),
-          // Bouton connexion dans le menu mobile
+          //connexion mobile
           SizedBox(
             width: double.infinity,
             child: _AuthButton(),
@@ -92,7 +95,7 @@ class CESIZenNavBar extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-// BOUTON AUTH — StatefulWidget pour se rafraîchir
+// BOUTON AUTH
 // ─────────────────────────────────────────────
 class _AuthButton extends StatefulWidget {
   @override
@@ -101,7 +104,7 @@ class _AuthButton extends StatefulWidget {
 
 class _AuthButtonState extends State<_AuthButton> {
 
-  // ── Déconnexion avec confirmation ────────────
+  // Déconnexion
   Future<void> _seDeconnecter() async {
     final confirmer = await showDialog<bool>(
       context: context,
@@ -158,9 +161,9 @@ class _AuthButtonState extends State<_AuthButton> {
 
     if (confirmer == true) {
       await AuthService.seDeconnecter();
-      setState(() {}); // rafraîchit le bouton
+      setState(() {}); // rafraîchi=r
       if (mounted) {
-        // Retour à l'accueil après déconnexion
+        // Retour accueil
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const HomePage()),
@@ -180,7 +183,7 @@ class _AuthButtonState extends State<_AuthButton> {
           await _seDeconnecter();
         } else {
           await showLoginPopup(context, onSuccess: () {
-            setState(() {}); // rafraîchit le bouton après connexion
+            setState(() {}); 
           });
         }
       },
@@ -270,7 +273,7 @@ class _MobileMenuItem extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-// FOOTER PARTAGÉ
+// FOOTER
 // ─────────────────────────────────────────────
 class CESIZenFooter extends StatelessWidget {
   const CESIZenFooter({super.key});

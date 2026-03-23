@@ -77,42 +77,76 @@ class _EspacePageState extends State<EspacePage> {
     final width = MediaQuery.of(context).size.width;
     final isMobile = width < 768;
 
-    // Non connecté
-    if (!AuthService.isLoggedIn) {
-      return Scaffold(
-        backgroundColor: Colors.white,
-        body: Column(children: [
-          CESIZenNavBar(isMobile: isMobile, activePage: 'Votre espace'),
-          Expanded(child: Center(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Container(
-                width: 64, height: 64,
-                decoration: BoxDecoration(color: kGreenLight, shape: BoxShape.circle),
-                child: const Icon(Icons.person_outline, color: kGreen, size: 32),
-              ),
-              const SizedBox(height: 20),
-              const Text('Connectez-vous pour accéder à votre espace',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kText)),
-              const SizedBox(height: 8),
-              const Text('Gérez votre profil, vos favoris et votre historique.',
-                  style: TextStyle(fontSize: 14, color: kGrey)),
-              const SizedBox(height: 28),
-              ElevatedButton(
-                onPressed: () => showLoginPopup(context, onSuccess: () => setState(() {})),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kGreen, foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                ),
-                child: const Text('Se connecter', style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
-            ]),
-          )),
-          const CESIZenFooter(),
-        ]),
-      );
-    }
+// Non connecté
+if (!AuthService.isLoggedIn) {
+  return Scaffold(
+    backgroundColor: Colors.white,
+    body: Column(
+      children: [
+        CESIZenNavBar(isMobile: isMobile, activePage: 'Votre espace'),
 
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10), // 👈 padding gauche/droite
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: kGreenLight,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.person_outline, color: kGreen, size: 32),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Connectez-vous pour accéder à votre espace',
+                    textAlign: TextAlign.center, // 👈 centrer le texte
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: kText,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Gérez votre profil, vos favoris et votre historique.',
+                    textAlign: TextAlign.center, // 👈 centrer le texte
+                    style: TextStyle(fontSize: 14, color: kGrey),
+                  ),
+                  const SizedBox(height: 28),
+                  ElevatedButton(
+                    onPressed: () => showLoginPopup(
+                      context,
+                      onSuccess: () => setState(() {}),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kGreen,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                    ),
+                    child: const Text(
+                      'Se connecter',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        const CESIZenFooter(),
+      ],
+    ),
+  );
+}
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(

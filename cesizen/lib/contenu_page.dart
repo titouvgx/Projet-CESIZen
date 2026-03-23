@@ -339,24 +339,30 @@ class _ContenuGrille extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final int colonnes = isMobile ? 1 : 3;
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: colonnes,
-        crossAxisSpacing: 20,
-        mainAxisSpacing: 20,
-        childAspectRatio: isMobile ? 2.5 : 0.99,
-      ),
-      itemCount: contenus.length,
-      itemBuilder: (context, index) {
-        return _ContenuCard(
+    if (isMobile) {
+      return ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: contenus.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 16),
+        itemBuilder: (context, index) => _ContenuCard(
           contenu: contenus[index],
           onTap: () => _showContenuPopup(context, contenus[index]),
-        );
-      },
+        ),
+      );
+    }
+
+    // Desktop : grille en Wrap pour que les cartes s'adaptent à leur contenu
+    return Wrap(
+      spacing: 20,
+      runSpacing: 20,
+      children: contenus.map((c) => SizedBox(
+        width: (MediaQuery.of(context).size.width - 160 - 40) / 3,
+        child: _ContenuCard(
+          contenu: c,
+          onTap: () => _showContenuPopup(context, c),
+        ),
+      )).toList(),
     );
   }
 
@@ -612,46 +618,42 @@ class _ContenuCardState extends State<_ContenuCard> {
             ),
 
             // ── Infos ──
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: tagColor.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(categorie,
-                          style: TextStyle(color: tagColor, fontSize: 11, fontWeight: FontWeight.w600)),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: tagColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      widget.contenu['titre'] ?? '',
-                      maxLines: 2, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kText, height: 1.4),
-                    ),
-                    const SizedBox(height: 6),
-                    Expanded(
-                      child: Text(
-                        (widget.contenu['texte'] ?? '').length > 80
-                            ? '${(widget.contenu['texte'] as String).substring(0, 80)}...'
-                            : widget.contenu['texte'] ?? '',
+                    child: Text(categorie,
+                        style: TextStyle(color: tagColor, fontSize: 11, fontWeight: FontWeight.w600)),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    widget.contenu['titre'] ?? '',
+                    maxLines: 2, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kText, height: 1.4),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    (widget.contenu['texte'] ?? '').length > 80
+                        ? '${(widget.contenu['texte'] as String).substring(0, 80)}...'
+                        : widget.contenu['texte'] ?? '',
                         style: const TextStyle(fontSize: 12, color: kGrey, height: 1.5),
-                        maxLines: 3, overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(mainAxisSize: MainAxisSize.min, children: [
-                      Text('Lire l\'article',
-                          style: TextStyle(color: tagColor, fontSize: 12, fontWeight: FontWeight.w600)),
-                      const SizedBox(width: 4),
-                      Icon(Icons.arrow_forward, size: 13, color: tagColor),
-                    ]),
-                  ],
-                ),
+                    maxLines: 3, overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 10),
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text('Lire l\'article',
+                        style: TextStyle(color: tagColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 4),
+                    Icon(Icons.arrow_forward, size: 13, color: tagColor),
+                  ]),
+                ],
               ),
             ),
           ],

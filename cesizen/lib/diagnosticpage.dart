@@ -169,14 +169,17 @@ class _PresentationTexte extends StatelessWidget {
       ),
       const SizedBox(height: 28),
 
-      ElevatedButton.icon(
-        onPressed: onStart,
-        icon: const Icon(Icons.play_arrow_rounded, size: 20),
-        label: const Text('Commencer le diagnostic', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: kGreen, foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+      SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: onStart,
+          icon: const Icon(Icons.play_arrow_rounded, size: 20),
+          label: const Text('Commencer le diagnostic', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kGreen, foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+          ),
         ),
       ),
     ]);
@@ -361,12 +364,12 @@ class _HistoriqueBloque extends StatelessWidget {
             Container(width: 40, height: 40, decoration: BoxDecoration(
                 color: kGreen.withOpacity(0.1), borderRadius: BorderRadius.circular(10))),
             const SizedBox(width: 16),
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Container(width: 120, height: 14, color: const Color(0xFFE5E7EB)),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Container(height: 14, color: const Color(0xFFE5E7EB)),
               const SizedBox(height: 8),
               Container(width: 80, height: 12, color: const Color(0xFFE5E7EB)),
-            ]),
-            const Spacer(),
+            ])),
+            const SizedBox(width: 8),
             Container(width: 60, height: 28, decoration: BoxDecoration(
                 color: kGreen.withOpacity(0.1), borderRadius: BorderRadius.circular(8))),
           ]),
@@ -380,11 +383,19 @@ class _HistoriqueBloque extends StatelessWidget {
             decoration: BoxDecoration(color: kGreen.withOpacity(0.1), borderRadius: BorderRadius.circular(28)),
             child: const Icon(Icons.lock_outline, color: kGreen, size: 28)),
           const SizedBox(height: 16),
-          const Text('Connectez-vous pour accéder à votre historique',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kText)),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text('Connectez-vous pour accéder à votre historique',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kText)),
+          ),
           const SizedBox(height: 8),
-          const Text('Vos diagnostics passés sont sauvegardés et consultables à tout moment.',
-              style: TextStyle(fontSize: 13, color: kGrey)),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24),
+            child: Text('Vos diagnostics passés sont sauvegardés et consultables à tout moment.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: kGrey)),
+          ),
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: () => showLoginPopup(context),

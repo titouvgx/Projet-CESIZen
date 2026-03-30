@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'auth_service.dart';
 import 'variables.dart';
+import 'admin.dart';
 
 // ─────────────────────────────────────────────
 // POPUP DE CONNEXION / INSCRIPTION
@@ -123,15 +124,31 @@ class _LoginPopupState extends State<_LoginPopup> {
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminPage()));
+                },
+                icon: const Icon(Icons.admin_panel_settings, size: 18),
+                label: const Text('Accéder au tableau de bord', style: TextStyle(fontWeight: FontWeight.w600)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: kGreen, foregroundColor: Colors.white,
+                  backgroundColor: const Color(0xFF856404), foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
-                child: const Text('Accéder au tableau de bord',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(context),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: kGreen, side: const BorderSide(color: kGreen),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text('Continuer sur le site', style: TextStyle(fontWeight: FontWeight.w600)),
               ),
             ),
           ]),
@@ -462,4 +479,4 @@ class _ChampLogin extends StatelessWidget {
       ],
     );
   }
-} 
+}

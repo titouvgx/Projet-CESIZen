@@ -28755,7 +28755,7 @@ var $async$a17=A.u(function(a,b){if(a===1)return A.p(b,r)
 for(;;)switch(s){case 0:if($.a0==null)A.aE8()
 $.a0.toString
 s=2
-return A.n(A.akI("",""),$async$a17)
+return A.n(A.akI("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZWxuZmx2cHN5bXJrZHJlZHBvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MzY3NTksImV4cCI6MjA4OTQxMjc1OX0.-GANEZDBRpQ_MI0IYSlcYRE0Z2eDBU91q59ECitIY6U","https://kfelnflvpsymrkdredpo.supabase.co"),$async$a17)
 case 2:s=3
 return A.n(A.Kv(),$async$a17)
 case 3:if($.a0==null)A.aE8()

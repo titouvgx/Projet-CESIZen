@@ -28755,7 +28755,7 @@ var $async$a17=A.u(function(a,b){if(a===1)return A.p(b,r)
 for(;;)switch(s){case 0:if($.a0==null)A.aE8()
 $.a0.toString
 s=2
-return A.n(A.akI("eyJxxx...","https://xxxx.supabase.co"),$async$a17)
+return A.n(A.akI("",""),$async$a17)
 case 2:s=3
 return A.n(A.Kv(),$async$a17)
 case 3:if($.a0==null)A.aE8()

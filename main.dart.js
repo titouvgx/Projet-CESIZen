@@ -8299,7 +8299,7 @@ aQK(a){var s=0,r=A.t(t.Tm),q,p=2,o=[],n,m,l,k
 var $async$a2i=A.u(function(b,c){if(b===1){o.push(c)
 s=p}for(;;)switch(s){case 0:p=4
 s=7
-return A.n($.dK().gbQ().wK(a,"io.supabase.cesizen://reset-password"),$async$a2i)
+return A.n($.dK().gbQ().wK(a,"https://titouvgx.github.io/Projet-CESIZen/"),$async$a2i)
 case 7:q=new A.ff(!0,null,"")
 s=1
 break

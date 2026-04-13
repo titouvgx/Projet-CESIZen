@@ -101,6 +101,21 @@ class AuthService {
     _userProfile = null;
   }
 
+  // ── Réinitialisation mot de passe ────────────
+  static Future<AuthResult> reinitialiserMotDePasse({required String email}) async {
+    try {
+      await _client.auth.resetPasswordForEmail(
+        email,
+        redirectTo: 'io.supabase.cesizen://reset-password',
+      );
+      return AuthResult.success(role: '');
+    } on AuthException catch (e) {
+      return AuthResult.error(_traduireErreur(e.message));
+    } catch (e) {
+      return AuthResult.error('Une erreur est survenue. Veuillez réessayer.');
+    }
+  }
+
   // ── Chargement du profil ─────────────────────
   static Future<void> _chargerProfil(String idUtilisateur) async {
     try {
@@ -137,8 +152,12 @@ class AuthService {
     if (message.contains('Password should be at least')) {
       return 'Le mot de passe doit contenir au moins 6 caractères.';
     }
+    if (message.contains('For security purposes') || message.contains('email rate limit')) {
+      return 'Trop de tentatives. Veuillez patienter avant de réessayer.';
+    }
     return 'Une erreur est survenue. Veuillez réessayer.';
   }
+
 }
 
 // ─────────────────────────────────────────────

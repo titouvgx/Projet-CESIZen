@@ -52,7 +52,7 @@ class CESIZenNavBar extends StatelessWidget {
             _NavItem(label: 'Accueil', isActive: activePage == 'Accueil', destination: const HomePage()),
             _NavItem(label: 'Diagnostics', isActive: activePage == 'Diagnostics', destination: const DiagnosticPage()),
             _NavItem(label: 'Contenus', isActive: activePage == 'Contenus', destination: const ContenuPage()),
-            _NavItem(label: 'Votre espace', isActive: activePage == 'Votre espace'),
+            _NavItem(label: 'Votre espace', isActive: activePage == 'Votre espace', destination: const EspacePage()),
             _NavItem(label: 'Besoin d\'aide ?', isActive: activePage == 'Aide', destination: const AidePage()),
             const SizedBox(width: 16),
             // Bouton auth seulement sur desktop

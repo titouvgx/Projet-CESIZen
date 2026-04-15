@@ -67,8 +67,6 @@ class AuthService {
         return AuthResult.error('Erreur lors de la création du compte.');
       }
 
-      // Si email de confirmation requis → session null
-      // L'utilisateur doit confirmer son email avant de se connecter
       if (response.session == null) {
         return AuthResult.error(
           'Un email de confirmation a été envoyé à $email. '
@@ -76,7 +74,6 @@ class AuthService {
         );
       }
 
-      // Crée l'entrée dans ta table utilisateur
       await _client.from('utilisateur').insert({
         'id_utilisateur': response.user!.id,
         'nom': nom,
@@ -106,7 +103,7 @@ class AuthService {
     try {
       await _client.auth.resetPasswordForEmail(
         email,
-        redirectTo: 'io.supabase.cesizen://reset-password',
+        redirectTo: 'https://titouvgx.github.io/Projet-CESIZen/',
       );
       return AuthResult.success(role: '');
     } on AuthException catch (e) {

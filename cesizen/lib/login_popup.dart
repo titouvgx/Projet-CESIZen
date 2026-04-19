@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'auth_service.dart';
 import 'variables.dart';
+import 'utils/cesizen_utils.dart';
 import 'admin.dart';
 
 // ─────────────────────────────────────────────
@@ -319,11 +320,7 @@ class _LoginPopupState extends State<_LoginPopup> {
               hint: 'jean@exemple.fr',
               icon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
-              validator: (v) {
-                if (v == null || v.isEmpty) return 'Requis';
-                if (!v.contains('@')) return 'Email invalide';
-                return null;
-              },
+              validator: validerEmailCesizen,
             ),
 
             if (_erreur != null) ...[
@@ -453,7 +450,7 @@ class _LoginPopupState extends State<_LoginPopup> {
                                 label: 'Nom complet',
                                 hint: 'Jean Dupont',
                                 icon: Icons.person_outline,
-                                validator: (v) => v == null || v.isEmpty ? 'Requis' : null,
+                                validator: validerNomCesizen,
                               ),
                               const SizedBox(height: 16),
                             ],
@@ -490,8 +487,8 @@ class _LoginPopupState extends State<_LoginPopup> {
                                 onPressed: () => setState(() => _passwordVisible = !_passwordVisible),
                               ),
                               validator: (v) {
+                                if (_mode == _Mode.inscription) return validerMotDePasseCesizen(v);
                                 if (v == null || v.isEmpty) return 'Requis';
-                                if (_mode == _Mode.inscription && v.length < 6) return 'Min. 6 caractères';
                                 return null;
                               },
                             ),

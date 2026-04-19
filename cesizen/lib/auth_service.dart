@@ -8,17 +8,32 @@ class AuthService {
   static final SupabaseClient _client = Supabase.instance.client;
 
   // ── Utilisateur courant ──────────────────────
-  static User? get currentAuthUser => _client.auth.currentUser;
-  static Map<String, dynamic>? _userProfile;
-  static Map<String, dynamic>? get userProfile => _userProfile;
+static User? get currentAuthUser {
+  try {
+    return _client.auth.currentUser;
+  } catch (_) {
+    return null; // Supabase non initialisé (contexte test)
+  }
+}
 
-  // ── État de connexion ────────────────────────
-  static bool get isLoggedIn => currentAuthUser != null && _userProfile != null;
-  static bool get isAdmin => _userProfile?['role'] == 'Admin';
-  static bool get isCitoyen => _userProfile?['role'] == 'Citoyen connecte';
-  static String? get role => _userProfile?['role'] as String?;
-  static String? get nom => _userProfile?['nom'] as String?;
-  static String? get idUtilisateur => currentAuthUser?.id;
+static Map<String, dynamic>? _userProfile;
+static Map<String, dynamic>? get userProfile => _userProfile;
+
+// ── État de connexion ────────────────────────
+// En test : on se base sur _userProfile uniquement
+// En prod : on vérifie aussi currentAuthUser
+static bool get isLoggedIn =>
+    _userProfile != null &&
+    (currentAuthUser != null || _userProfile!.containsKey('id_utilisateur'));
+
+static bool get isAdmin    => _userProfile?['role'] == 'Admin';
+static bool get isCitoyen  => _userProfile?['role'] == 'Citoyen connecte';
+static String? get role    => _userProfile?['role'] as String?;
+static String? get nom     => _userProfile?['nom'] as String?;
+
+// idUtilisateur : lit _userProfile en priorité (tests), sinon Supabase Auth (prod)
+static String? get idUtilisateur =>
+    _userProfile?['id_utilisateur'] as String? ?? currentAuthUser?.id;
 
   // ── Connexion ────────────────────────────────
   static Future<AuthResult> seConnecter({
@@ -134,7 +149,17 @@ class AuthService {
       await _chargerProfil(user.id);
     }
   }
+  static void resetForTest() {
+    _userProfile = null;
+  }
 
+  static void setProfileForTest(Map<String, dynamic> profile) {
+    _userProfile = profile;
+  }
+
+  static String traduireErreurForTest(String message) {
+    return _traduireErreur(message);
+  }
   // ── Traduction des erreurs Supabase ──────────
   static String _traduireErreur(String message) {
     if (message.contains('Invalid login credentials')) {

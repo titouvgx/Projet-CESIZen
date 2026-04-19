@@ -3,6 +3,7 @@ import 'services/supabase_service.dart';
 import 'widgets.dart';
 import 'variables.dart';
 import 'auth_service.dart';
+import 'utils/cesizen_utils.dart';
 
 class QuestionnairePage extends StatefulWidget {
   const QuestionnairePage({super.key});
@@ -41,17 +42,9 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
     }
   }
 
-  int _calculerScore() {
-    int total = 0;
-    for (final ev in _evenements) {
-      final id = ev['id_evenement'] as int;
-      final score = ev['score'] as int;
-      total += (_quantites[id] ?? 0) * score;
-    }
-    return total;
-  }
-
-  int get _nbEvenementsCoches => _quantites.values.where((q) => q > 0).length;
+  // Utilise cesizen_utils.dart — testable directement
+  int _calculerScore() => calculerScoreHolmes(_evenements, _quantites);
+  int get _nbEvenementsCoches => nbEvenementsCochesHolmes(_quantites);
 
   Future<void> _soumettre() async {
     if (_nbEvenementsCoches == 0) {
@@ -426,4 +419,4 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
       ),
     );
   }
-}
+} 

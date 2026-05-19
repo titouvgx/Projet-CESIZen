@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'utils/logger.dart';
 
 // ─────────────────────────────────────────────
 // SERVICE D'AUTHENTIFICATION
@@ -8,32 +9,32 @@ class AuthService {
   static final SupabaseClient _client = Supabase.instance.client;
 
   // ── Utilisateur courant ──────────────────────
-static User? get currentAuthUser {
-  try {
-    return _client.auth.currentUser;
-  } catch (_) {
-    return null; // Supabase non initialisé (contexte test)
+  static User? get currentAuthUser {
+    try {
+      return _client.auth.currentUser;
+    } catch (_) {
+      return null; // Supabase non initialisé (contexte test)
+    }
   }
-}
 
-static Map<String, dynamic>? _userProfile;
-static Map<String, dynamic>? get userProfile => _userProfile;
+  static Map<String, dynamic>? _userProfile;
+  static Map<String, dynamic>? get userProfile => _userProfile;
 
-// ── État de connexion ────────────────────────
-// En test : on se base sur _userProfile uniquement
-// En prod : on vérifie aussi currentAuthUser
-static bool get isLoggedIn =>
-    _userProfile != null &&
-    (currentAuthUser != null || _userProfile!.containsKey('id_utilisateur'));
+  // ── État de connexion ────────────────────────
+  // En test : on se base sur _userProfile uniquement
+  // En prod : on vérifie aussi currentAuthUser
+  static bool get isLoggedIn =>
+      _userProfile != null &&
+      (currentAuthUser != null || _userProfile!.containsKey('id_utilisateur'));
 
-static bool get isAdmin    => _userProfile?['role'] == 'Admin';
-static bool get isCitoyen  => _userProfile?['role'] == 'Citoyen connecte';
-static String? get role    => _userProfile?['role'] as String?;
-static String? get nom     => _userProfile?['nom'] as String?;
+  static bool get isAdmin    => _userProfile?['role'] == 'Admin';
+  static bool get isCitoyen  => _userProfile?['role'] == 'Citoyen connecte';
+  static String? get role    => _userProfile?['role'] as String?;
+  static String? get nom     => _userProfile?['nom'] as String?;
 
-// idUtilisateur : lit _userProfile en priorité (tests), sinon Supabase Auth (prod)
-static String? get idUtilisateur =>
-    _userProfile?['id_utilisateur'] as String? ?? currentAuthUser?.id;
+  // idUtilisateur : lit _userProfile en priorité (tests), sinon Supabase Auth (prod)
+  static String? get idUtilisateur =>
+      _userProfile?['id_utilisateur'] as String? ?? currentAuthUser?.id;
 
   // ── Connexion ────────────────────────────────
   static Future<AuthResult> seConnecter({
@@ -60,8 +61,11 @@ static String? get idUtilisateur =>
       return AuthResult.success(role: _userProfile?['role'] ?? '');
 
     } on AuthException catch (e) {
+      AppLogger.warning('Échec de connexion', context: 'AuthService');
+      AppLogger.debug('AuthException: ${e.message}', context: 'AuthService');
       return AuthResult.error(_traduireErreur(e.message));
     } catch (e) {
+      AppLogger.error('Erreur inattendue lors de la connexion', context: 'AuthService', exception: e);
       return AuthResult.error('Une erreur est survenue. Veuillez réessayer.');
     }
   }
@@ -101,8 +105,11 @@ static String? get idUtilisateur =>
       return AuthResult.success(role: 'Citoyen connecte');
 
     } on AuthException catch (e) {
+      AppLogger.warning("Échec d'inscription", context: 'AuthService');
+      AppLogger.debug('AuthException: ${e.message}', context: 'AuthService');
       return AuthResult.error(_traduireErreur(e.message));
     } catch (e) {
+      AppLogger.error("Erreur inattendue lors de l'inscription", context: 'AuthService', exception: e);
       return AuthResult.error('Une erreur est survenue. Veuillez réessayer.');
     }
   }
@@ -122,8 +129,11 @@ static String? get idUtilisateur =>
       );
       return AuthResult.success(role: '');
     } on AuthException catch (e) {
+      AppLogger.warning('Échec réinitialisation mot de passe', context: 'AuthService');
+      AppLogger.debug('AuthException: ${e.message}', context: 'AuthService');
       return AuthResult.error(_traduireErreur(e.message));
     } catch (e) {
+      AppLogger.error('Erreur inattendue lors de la réinitialisation', context: 'AuthService', exception: e);
       return AuthResult.error('Une erreur est survenue. Veuillez réessayer.');
     }
   }
@@ -138,7 +148,7 @@ static String? get idUtilisateur =>
           .maybeSingle();
       _userProfile = data;
     } catch (e) {
-      print('❌ Erreur chargement profil : $e');
+      AppLogger.error('Erreur chargement profil', context: 'AuthService', exception: e);
     }
   }
 
@@ -149,6 +159,7 @@ static String? get idUtilisateur =>
       await _chargerProfil(user.id);
     }
   }
+
   static void resetForTest() {
     _userProfile = null;
   }
@@ -160,7 +171,9 @@ static String? get idUtilisateur =>
   static String traduireErreurForTest(String message) {
     return _traduireErreur(message);
   }
+
   // ── Traduction des erreurs Supabase ──────────
+  // Ne retourne jamais de détail technique — uniquement des messages utilisateur.
   static String _traduireErreur(String message) {
     if (message.contains('Invalid login credentials')) {
       return 'Email ou mot de passe incorrect.';
@@ -179,7 +192,6 @@ static String? get idUtilisateur =>
     }
     return 'Une erreur est survenue. Veuillez réessayer.';
   }
-
 }
 
 // ─────────────────────────────────────────────

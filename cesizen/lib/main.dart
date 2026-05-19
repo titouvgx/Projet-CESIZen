@@ -6,10 +6,25 @@ import 'home_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  const supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: '',
+  );
+  const supabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: '',
+  );
+
+  if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
+    throw Exception(
+      'SUPABASE_URL et SUPABASE_ANON_KEY doivent être définis via --dart-define',
+    );
+  }
+
   await Supabase.initialize(
-  url: 'https://kfelnflvpsymrkdredpo.supabase.co',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZWxuZmx2cHN5bXJrZHJlZHBvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MzY3NTksImV4cCI6MjA4OTQxMjc1OX0.-GANEZDBRpQ_MI0IYSlcYRE0Z2eDBU91q59ECitIY6U',
-);
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
+  );
 
   // Restaure la session si l'utilisateur était déjà connecté
   await AuthService.restaurerSession();

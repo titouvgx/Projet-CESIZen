@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  cesizen:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SUPABASE_URL: ${SUPABASE_URL}
+        SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+    image: cesizen:latest
+    container_name: cesizen-app
+    ports:
+      - '80:80'
+    restart: unless-stopped

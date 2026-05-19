@@ -32,7 +32,15 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+
+# Environment variables
 .env
+.env.*
+!.env.example
+
+# Generated Dart files
+*.g.dart
+*.freezed.dart
 
 # Symbolication related
 app.*.symbols

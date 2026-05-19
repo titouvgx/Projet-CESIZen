@@ -7,6 +7,13 @@ on:
   pull_request:
     branches: [master]
 
+# ── Permissions globales ─────────────────────────────────────────────
+# packages: write est requis pour pousser des images sur GHCR
+# contents: read suffit pour le checkout
+permissions:
+  contents: read
+  packages: write
+
 jobs:
 
   # ════════════════════════════════════════════════════════════════════

@@ -1,5 +1,5 @@
 # ── Stage 1 : Build Flutter Web ──────────────────────────────────
-FROM ghcr.io/cirruslabs/flutter:3.29.3 AS builder
+FROM ghcr.io/cirruslabs/flutter:3.44.0 AS builder
 
 ARG SUPABASE_URL
 ARG SUPABASE_ANON_KEY

@@ -1,5 +1,25 @@
 # ── Stage 1 : Build Flutter Web ──────────────────────────────────
-FROM ghcr.io/cirruslabs/flutter:3.44.0 AS builder
+FROM debian:bookworm-slim AS builder
+
+ARG FLUTTER_VERSION=3.29.3
+ENV FLUTTER_HOME=/opt/flutter
+ENV PATH=$FLUTTER_HOME/bin:$PATH
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    unzip \
+    xz-utils \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/flutter/flutter.git \
+    --depth 1 \
+    --branch $FLUTTER_VERSION \
+    $FLUTTER_HOME
+
+RUN flutter config --enable-web
+RUN flutter precache --web
 
 ARG SUPABASE_URL
 ARG SUPABASE_ANON_KEY

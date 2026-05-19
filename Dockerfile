@@ -1,7 +1,7 @@
 # ── Stage 1 : Build Flutter Web ──────────────────────────────────
 FROM debian:bookworm-slim AS builder
 
-ARG FLUTTER_VERSION=3.29.3
+ARG FLUTTER_VERSION=3.41.1
 ENV FLUTTER_HOME=/opt/flutter
 ENV PATH=$FLUTTER_HOME/bin:$PATH
 

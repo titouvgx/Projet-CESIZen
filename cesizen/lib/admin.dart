@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'services/supabase_service.dart';
 import 'variables.dart';
 import 'auth_service.dart';
 import 'home_page.dart';

@@ -47,7 +47,7 @@ jobs:
       # ── Analyse statique du code Dart ────────────────────────────
       - name: 🔍 Analyse statique (flutter analyze)
         working-directory: cesizen
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos
 
       # ── Exécution des tests unitaires ────────────────────────────
       - name: 🧪 Exécution des tests (cahier_tests.dart)

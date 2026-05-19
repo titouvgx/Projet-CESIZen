@@ -861,13 +861,6 @@ class _HistoriqueSection extends StatelessWidget {
     required this.loading, required this.onRefresh,
   });
 
-  String _formatDate(String? dateStr) {
-    if (dateStr == null) return '';
-    final date = DateTime.tryParse(dateStr);
-    if (date == null) return '';
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(

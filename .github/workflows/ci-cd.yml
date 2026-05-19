@@ -1,0 +1,203 @@
+name: CI/CD — CESIZen
+
+# ── Déclencheurs ────────────────────────────────────────────────────
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+
+  # ════════════════════════════════════════════════════════════════════
+  # JOB 1 — Tests Flutter
+  # Analyse statique + exécution des tests unitaires
+  # ════════════════════════════════════════════════════════════════════
+  tests:
+    name: 🧪 Tests Flutter
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Récupération du code source ──────────────────────────────
+      - name: 📥 Checkout du code
+        uses: actions/checkout@v4
+
+      # ── Installation de Flutter 3.41.1 stable ───────────────────
+      - name: 🐦 Installation Flutter 3.41.1
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.1'
+          channel: stable
+          cache: true
+
+      # ── Cache des packages pub (basé sur pubspec.lock) ───────────
+      - name: 📦 Cache des dépendances pub
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('cesizen/pubspec.lock') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
+      # ── Résolution des dépendances ───────────────────────────────
+      - name: 📥 Installation des dépendances (flutter pub get)
+        working-directory: cesizen
+        run: flutter pub get
+
+      # ── Analyse statique du code Dart ────────────────────────────
+      - name: 🔍 Analyse statique (flutter analyze)
+        working-directory: cesizen
+        run: flutter analyze
+
+      # ── Exécution des tests unitaires ────────────────────────────
+      - name: 🧪 Exécution des tests (cahier_tests.dart)
+        working-directory: cesizen
+        run: flutter test test/cahier_tests.dart --reporter expanded
+
+
+  # ════════════════════════════════════════════════════════════════════
+  # JOB 2 — Build Flutter Web
+  # Compile l'application en HTML/CSS/JS statique
+  # Les clés Supabase sont compilées dans le JS via --dart-define
+  # ════════════════════════════════════════════════════════════════════
+  build:
+    name: 🔨 Build Flutter Web
+    runs-on: ubuntu-latest
+    needs: tests
+
+    steps:
+      # ── Récupération du code source ──────────────────────────────
+      - name: 📥 Checkout du code
+        uses: actions/checkout@v4
+
+      # ── Installation de Flutter 3.41.1 stable ───────────────────
+      - name: 🐦 Installation Flutter 3.41.1
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.1'
+          channel: stable
+          cache: true
+
+      # ── Cache des packages pub ───────────────────────────────────
+      - name: 📦 Cache des dépendances pub
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('cesizen/pubspec.lock') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+
+      # ── Résolution des dépendances ───────────────────────────────
+      - name: 📥 Installation des dépendances (flutter pub get)
+        working-directory: cesizen
+        run: flutter pub get
+
+      # ── Compilation Flutter Web avec injection des secrets ───────
+      # Les secrets sont passés via des variables d'environnement
+      # pour que GitHub Actions les masque automatiquement dans les logs
+      - name: 🔨 Build Flutter Web (--dart-define)
+        working-directory: cesizen
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          flutter build web \
+            --release \
+            --base-href "/" \
+            --dart-define=SUPABASE_URL=$SUPABASE_URL \
+            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+
+      # ── Mise à disposition du build pour les jobs suivants ───────
+      - name: 📤 Upload artifact build/web
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-web-build
+          path: cesizen/build/web
+          retention-days: 7
+
+
+  # ════════════════════════════════════════════════════════════════════
+  # JOB 3 — Build et Push image Docker sur GHCR
+  # Build multi-stage (Dockerfile racine) et push sur ghcr.io
+  # Le push n'est effectué que sur les push vers master (pas les PRs)
+  # ════════════════════════════════════════════════════════════════════
+  docker:
+    name: 🐳 Build Docker
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      # ── Récupération du code source ──────────────────────────────
+      - name: 📥 Checkout du code
+        uses: actions/checkout@v4
+
+      # ── Authentification sur GitHub Container Registry ───────────
+      - name: 🔐 Login sur GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Activation de Docker Buildx (nécessaire pour le cache GHA)
+      - name: 🛠️ Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ── Build de l'image et push sur GHCR ───────────────────────
+      # Le build Flutter est réalisé dans le Dockerfile (Stage 1)
+      # Les secrets sont passés en ARG Docker — masqués par GitHub Actions
+      - name: 🐳 Build et Push image Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ghcr.io/titouvgx/cesizen:latest
+            ghcr.io/titouvgx/cesizen:${{ github.sha }}
+          build-args: |
+            SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+            SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+          # Cache des layers Docker via le cache GitHub Actions
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+
+  # ════════════════════════════════════════════════════════════════════
+  # JOB 4 — Résumé du pipeline
+  # Toujours exécuté (if: always()) pour afficher le bilan même en cas
+  # d'échec d'un job précédent
+  # ════════════════════════════════════════════════════════════════════
+  summary:
+    name: ✅ Pipeline terminé
+    runs-on: ubuntu-latest
+    needs: [tests, build, docker]
+    if: always()
+
+    steps:
+      # ── Génération du résumé dans l'interface GitHub Actions ─────
+      - name: 📋 Résumé du pipeline
+        run: |
+          echo "## 🚀 Pipeline CI/CD — CESIZen" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Résultats des jobs" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Statut |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧪 Tests Flutter | ${{ needs.tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔨 Build Flutter Web | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🐳 Build Docker | ${{ needs.docker.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Informations du build" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **SHA du commit :** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branche :** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Déclenché par :** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Image Docker" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag latest :** \`ghcr.io/titouvgx/cesizen:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag commit :** \`ghcr.io/titouvgx/cesizen:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Lien GHCR :** https://github.com/titouvgx/Projet-CESIZen/pkgs/container/cesizen" >> $GITHUB_STEP_SUMMARY

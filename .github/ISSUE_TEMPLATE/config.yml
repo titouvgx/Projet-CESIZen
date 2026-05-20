@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentation
+    url: https://github.com/titouvgx/Projet-CESIZen/blob/master/README.md
+    about: Consulter la documentation avant d'ouvrir un ticket
+  - name: 🔒 Vulnérabilité critique
+    url: https://github.com/titouvgx/Projet-CESIZen/security
+    about: Signaler une vulnérabilité critique de manière confidentielle

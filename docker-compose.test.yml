@@ -1,0 +1,23 @@
+version: '3.8'
+
+# Environnement de test — simule la production en local
+# Utilisé par GitHub Actions et pour validation avant prod
+
+services:
+  cesizen-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SUPABASE_URL: ${SUPABASE_URL}
+        SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+    image: cesizen:test
+    container_name: cesizen-test
+    ports:
+      - '8090:80'
+    restart: 'no'
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:80']
+      interval: 10s
+      timeout: 5s
+      retries: 3

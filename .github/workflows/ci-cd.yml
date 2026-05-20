@@ -170,14 +170,57 @@ jobs:
 
 
   # ════════════════════════════════════════════════════════════════════
-  # JOB 4 — Résumé du pipeline
+  # JOB 4 — Test environnement intégration
+  # Lance l'image Docker buildée et vérifie que Nginx répond
+  # Simule la production en local avant tout déploiement réel
+  # ════════════════════════════════════════════════════════════════════
+  integration-test:
+    name: 🧪 Test environnement intégration
+    needs: docker
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Récupération du code source ──────────────────────────────
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      # ── Login GHCR pour accéder à l'image buildée au job docker ──
+      - name: 🔑 Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Build et démarrage de l'environnement de test ────────────
+      # Rebuild depuis le Dockerfile car l'image locale n'est pas
+      # disponible sur le runner (chaque job est isolé)
+      - name: 🧪 Lancer environnement test
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          docker compose -f docker-compose.test.yml up -d --build
+          sleep 10
+          # Vérifier que Nginx répond sur le port 8090
+          curl --fail http://localhost:8090 || exit 1
+          echo '✅ Environnement test opérationnel'
+
+      # ── Nettoyage — toujours exécuté même en cas d'échec ─────────
+      - name: 🧹 Nettoyage
+        if: always()
+        run: docker compose -f docker-compose.test.yml down
+
+
+  # ════════════════════════════════════════════════════════════════════
+  # JOB 5 — Résumé du pipeline
   # Toujours exécuté (if: always()) pour afficher le bilan même en cas
   # d'échec d'un job précédent
   # ════════════════════════════════════════════════════════════════════
   summary:
     name: ✅ Pipeline terminé
     runs-on: ubuntu-latest
-    needs: [tests, build, docker]
+    needs: [tests, build, docker, integration-test]
     if: always()
 
     steps:
@@ -194,6 +237,7 @@ jobs:
           echo "| 🧪 Tests Flutter | ${{ needs.tests.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🔨 Build Flutter Web | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🐳 Build Docker | ${{ needs.docker.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧪 Test intégration | ${{ needs.integration-test.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           echo "### Informations du build" >> $GITHUB_STEP_SUMMARY

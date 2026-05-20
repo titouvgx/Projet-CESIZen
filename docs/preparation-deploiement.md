@@ -339,3 +339,47 @@ curl -I https://TON_DOMAINE.fr
 | L'image `cesizen:latest` contient les clés | Ne jamais pousser cette image sur un registry public |
 | `.dockerignore` exclut `.env` | Le fichier local `.env` n'est jamais copié dans le build context |
 | `nginx.prod.conf` est un template | Remplacer `TON_DOMAINE.fr` par le vrai domaine avant usage |
+
+---
+
+## Environnements de déploiement
+
+### Environnement DEV (développement local)
+
+| Propriété | Valeur |
+|---|---|
+| Outil | Flutter SDK + Chrome |
+| Commande | `scripts/run_local.bat` (Windows) / `source .env && ./scripts/run_local.sh` (Linux/Mac) |
+| URL | http://localhost:8080 |
+| Usage | Développement quotidien — hot reload activé |
+
+### Environnement TEST (intégration)
+
+| Propriété | Valeur |
+|---|---|
+| Outil | Docker Compose + Nginx |
+| Commande | `docker compose -f docker-compose.test.yml up -d --build` |
+| Script | `scripts/test_env.bat` (Windows) / `./scripts/test_env.sh` (Linux/Mac) |
+| URL | http://localhost:8090 |
+| Usage | Validation avant mise en production, CI GitHub Actions (Job 4) |
+
+### Environnement PROD (production)
+
+| Propriété | Valeur |
+|---|---|
+| Outil | Docker Compose + Nginx + Certbot |
+| Commande | `docker compose -f docker-compose.prod.yml up -d --build` |
+| Script | `./scripts/deploy_prod.sh` |
+| URL | https://tondomaine.fr |
+| Usage | Environnement public accessible aux utilisateurs |
+
+### Comparaison des 3 environnements
+
+| | DEV | TEST | PROD |
+|---|---|---|---|
+| Port | 8080 | 8090 | 443 (HTTPS) |
+| Nginx | Non (Flutter dev server) | Oui | Oui + reverse proxy |
+| HTTPS | Non | Non | Oui (Let's Encrypt) |
+| Docker | Non | Oui | Oui |
+| Hot reload | Oui | Non | Non |
+| CI GitHub Actions | Non | Oui (Job 4) | Manuel (`deploy_prod.sh`) |

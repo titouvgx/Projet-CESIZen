@@ -21,16 +21,16 @@ jobs:
   # Analyse statique + exécution des tests unitaires
   # ════════════════════════════════════════════════════════════════════
   tests:
-    name: 🧪 Tests Flutter
+    name: Tests Flutter
     runs-on: ubuntu-latest
 
     steps:
       # ── Récupération du code source ──────────────────────────────
-      - name: 📥 Checkout du code
+      - name: Checkout du code
         uses: actions/checkout@v4
 
       # ── Installation de Flutter 3.41.1 stable ───────────────────
-      - name: 🐦 Installation Flutter 3.41.1
+      - name: Installation Flutter 3.41.1
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.41.1'
@@ -38,7 +38,7 @@ jobs:
           cache: true
 
       # ── Cache des packages pub (basé sur pubspec.lock) ───────────
-      - name: 📦 Cache des dépendances pub
+      - name: Cache des dépendances pub
         uses: actions/cache@v4
         with:
           path: ~/.pub-cache
@@ -47,17 +47,17 @@ jobs:
             pub-${{ runner.os }}-
 
       # ── Résolution des dépendances ───────────────────────────────
-      - name: 📥 Installation des dépendances (flutter pub get)
+      - name: Installation des dépendances (flutter pub get)
         working-directory: cesizen
         run: flutter pub get
 
       # ── Analyse statique du code Dart ────────────────────────────
-      - name: 🔍 Analyse statique (flutter analyze)
+      - name: Analyse statique (flutter analyze)
         working-directory: cesizen
         run: flutter analyze --no-fatal-infos
 
       # ── Exécution des tests unitaires ────────────────────────────
-      - name: 🧪 Exécution des tests (cahier_tests.dart)
+      - name: Exécution des tests (cahier_tests.dart)
         working-directory: cesizen
         run: flutter test test/cahier_tests.dart --reporter expanded
 
@@ -68,17 +68,17 @@ jobs:
   # Les clés Supabase sont compilées dans le JS via --dart-define
   # ════════════════════════════════════════════════════════════════════
   build:
-    name: 🔨 Build Flutter Web
+    name: Build Flutter Web
     runs-on: ubuntu-latest
     needs: tests
 
     steps:
       # ── Récupération du code source ──────────────────────────────
-      - name: 📥 Checkout du code
+      - name: Checkout du code
         uses: actions/checkout@v4
 
       # ── Installation de Flutter 3.41.1 stable ───────────────────
-      - name: 🐦 Installation Flutter 3.41.1
+      - name: Installation Flutter 3.41.1
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.41.1'
@@ -86,7 +86,7 @@ jobs:
           cache: true
 
       # ── Cache des packages pub ───────────────────────────────────
-      - name: 📦 Cache des dépendances pub
+      - name: Cache des dépendances pub
         uses: actions/cache@v4
         with:
           path: ~/.pub-cache
@@ -95,14 +95,14 @@ jobs:
             pub-${{ runner.os }}-
 
       # ── Résolution des dépendances ───────────────────────────────
-      - name: 📥 Installation des dépendances (flutter pub get)
+      - name: Installation des dépendances (flutter pub get)
         working-directory: cesizen
         run: flutter pub get
 
       # ── Compilation Flutter Web avec injection des secrets ───────
       # Les secrets sont passés via des variables d'environnement
       # pour que GitHub Actions les masque automatiquement dans les logs
-      - name: 🔨 Build Flutter Web (--dart-define)
+      - name: Build Flutter Web (--dart-define)
         working-directory: cesizen
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -115,7 +115,7 @@ jobs:
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
 
       # ── Mise à disposition du build pour les jobs suivants ───────
-      - name: 📤 Upload artifact build/web
+      - name: Upload artifact build/web
         uses: actions/upload-artifact@v4
         with:
           name: flutter-web-build
@@ -129,17 +129,17 @@ jobs:
   # Le push n'est effectué que sur les push vers master (pas les PRs)
   # ════════════════════════════════════════════════════════════════════
   docker:
-    name: 🐳 Build Docker
+    name: Build Docker
     runs-on: ubuntu-latest
     needs: build
 
     steps:
       # ── Récupération du code source ──────────────────────────────
-      - name: 📥 Checkout du code
+      - name: Checkout du code
         uses: actions/checkout@v4
 
       # ── Authentification sur GitHub Container Registry ───────────
-      - name: 🔐 Login sur GitHub Container Registry (GHCR)
+      - name: Login sur GitHub Container Registry (GHCR)
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -147,13 +147,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # ── Activation de Docker Buildx (nécessaire pour le cache GHA)
-      - name: 🛠️ Setup Docker Buildx
+      - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       # ── Build de l'image et push sur GHCR ───────────────────────
       # Le build Flutter est réalisé dans le Dockerfile (Stage 1)
       # Les secrets sont passés en ARG Docker — masqués par GitHub Actions
-      - name: 🐳 Build et Push image Docker
+      - name: Build et Push image Docker
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -175,17 +175,17 @@ jobs:
   # Simule la production en local avant tout déploiement réel
   # ════════════════════════════════════════════════════════════════════
   integration-test:
-    name: 🧪 Test environnement intégration
+    name: Test environnement intégration
     needs: docker
     runs-on: ubuntu-latest
 
     steps:
       # ── Récupération du code source ──────────────────────────────
-      - name: 📥 Checkout
+      - name: Checkout
         uses: actions/checkout@v4
 
       # ── Login GHCR pour accéder à l'image buildée au job docker ──
-      - name: 🔑 Login GHCR
+      - name: Login GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -195,7 +195,7 @@ jobs:
       # ── Build et démarrage de l'environnement de test ────────────
       # Rebuild depuis le Dockerfile car l'image locale n'est pas
       # disponible sur le runner (chaque job est isolé)
-      - name: 🧪 Lancer environnement test
+      - name: Lancer environnement test
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
@@ -207,7 +207,7 @@ jobs:
           echo '✅ Environnement test opérationnel'
 
       # ── Nettoyage — toujours exécuté même en cas d'échec ─────────
-      - name: 🧹 Nettoyage
+      - name: Nettoyage
         if: always()
         run: docker compose -f docker-compose.test.yml down
 
@@ -218,14 +218,14 @@ jobs:
   # d'échec d'un job précédent
   # ════════════════════════════════════════════════════════════════════
   summary:
-    name: ✅ Pipeline terminé
+    name: Pipeline terminé
     runs-on: ubuntu-latest
     needs: [tests, build, docker, integration-test]
     if: always()
 
     steps:
       # ── Génération du résumé dans l'interface GitHub Actions ─────
-      - name: 📋 Résumé du pipeline
+      - name: Résumé du pipeline
         run: |
           echo "## 🚀 Pipeline CI/CD — CESIZen" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

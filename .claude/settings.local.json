@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(flutter analyze *)",
-      "Bash(echo \"Exit: $?\")",
-      "Bash(echo \"EXIT_CODE=$?\")"
-    ]
-  }
-}

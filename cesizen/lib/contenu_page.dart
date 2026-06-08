@@ -3,6 +3,7 @@ import 'services/supabase_service.dart';
 import 'variables.dart';
 import 'widgets.dart';
 import 'auth_service.dart';
+import 'utils/logger.dart';
 
 // ─────────────────────────────────────────────
 // PAGE CONTENU
@@ -48,7 +49,7 @@ class _ContenuPageState extends State<ContenuPage> {
         _loading = false;
       });
     } catch (e) {
-      print('❌ Erreur chargement contenus : $e');
+      AppLogger.error('Erreur chargement contenus', context: 'ContenuPage', exception: e);
       setState(() => _loading = false);
     }
   }
@@ -530,7 +531,7 @@ class _ContenuCardState extends State<_ContenuCard> {
       );
       if (mounted) setState(() => _estFavori = favori);
     } catch (e) {
-      print('❌ Erreur vérification favori : $e');
+      AppLogger.error('Erreur vérification favori', context: 'ContenuPage', exception: e);
     }
   }
 
@@ -555,7 +556,7 @@ class _ContenuCardState extends State<_ContenuCard> {
         _chargementFavori = false;
       });
     } catch (e) {
-      print('❌ Erreur toggle favori : $e');
+      AppLogger.error('Erreur toggle favori', context: 'ContenuPage', exception: e);
       if (mounted) setState(() => _chargementFavori = false);
     }
   }

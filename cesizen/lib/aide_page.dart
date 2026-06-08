@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'services/supabase_service.dart';
 import 'widgets.dart';
 import 'variables.dart';
+import 'utils/logger.dart';
 
 // ─────────────────────────────────────────────
 // PAGE BESOIN D'AIDE
@@ -23,6 +24,7 @@ class _AidePageState extends State<AidePage> {
 
   bool _envoiEnCours = false;
   bool _envoiReussi = false;
+  bool _consentementAccepte = false;
 
   @override
   void dispose() {
@@ -35,6 +37,7 @@ class _AidePageState extends State<AidePage> {
 
   Future<void> _envoyerMessage() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_consentementAccepte) return;
     setState(() => _envoiEnCours = true);
 
     try {
@@ -50,7 +53,7 @@ class _AidePageState extends State<AidePage> {
       _sujetController.clear();
       _messageController.clear();
     } catch (e) {
-      print('❌ Erreur envoi message : $e');
+      AppLogger.error('Erreur envoi message', context: 'AidePage', exception: e);
       setState(() => _envoiEnCours = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -82,6 +85,8 @@ class _AidePageState extends State<AidePage> {
               messageController: _messageController,
               envoiEnCours: _envoiEnCours,
               envoiReussi: _envoiReussi,
+              consentement: _consentementAccepte,
+              onConsentementChanged: (v) => setState(() => _consentementAccepte = v),
               onEnvoyer: _envoyerMessage,
               onNouveauMessage: () => setState(() => _envoiReussi = false),
             ),
@@ -146,6 +151,8 @@ class _AideBody extends StatelessWidget {
   final TextEditingController messageController;
   final bool envoiEnCours;
   final bool envoiReussi;
+  final bool consentement;
+  final ValueChanged<bool> onConsentementChanged;
   final VoidCallback onEnvoyer;
   final VoidCallback onNouveauMessage;
 
@@ -158,6 +165,8 @@ class _AideBody extends StatelessWidget {
     required this.messageController,
     required this.envoiEnCours,
     required this.envoiReussi,
+    required this.consentement,
+    required this.onConsentementChanged,
     required this.onEnvoyer,
     required this.onNouveauMessage,
   });
@@ -175,7 +184,9 @@ class _AideBody extends StatelessWidget {
                 formKey: formKey, nomController: nomController,
                 emailController: emailController, sujetController: sujetController,
                 messageController: messageController, envoiEnCours: envoiEnCours,
-                envoiReussi: envoiReussi, onEnvoyer: onEnvoyer, onNouveauMessage: onNouveauMessage,
+                envoiReussi: envoiReussi, consentement: consentement,
+                onConsentementChanged: onConsentementChanged,
+                onEnvoyer: onEnvoyer, onNouveauMessage: onNouveauMessage,
               ),
             ])
           : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -187,7 +198,9 @@ class _AideBody extends StatelessWidget {
                   formKey: formKey, nomController: nomController,
                   emailController: emailController, sujetController: sujetController,
                   messageController: messageController, envoiEnCours: envoiEnCours,
-                  envoiReussi: envoiReussi, onEnvoyer: onEnvoyer, onNouveauMessage: onNouveauMessage,
+                  envoiReussi: envoiReussi, consentement: consentement,
+                  onConsentementChanged: onConsentementChanged,
+                  onEnvoyer: onEnvoyer, onNouveauMessage: onNouveauMessage,
                 ),
               ),
             ]),
@@ -300,6 +313,8 @@ class _Formulaire extends StatelessWidget {
   final TextEditingController messageController;
   final bool envoiEnCours;
   final bool envoiReussi;
+  final bool consentement;
+  final ValueChanged<bool> onConsentementChanged;
   final VoidCallback onEnvoyer;
   final VoidCallback onNouveauMessage;
 
@@ -307,7 +322,8 @@ class _Formulaire extends StatelessWidget {
     required this.formKey, required this.nomController,
     required this.emailController, required this.sujetController,
     required this.messageController, required this.envoiEnCours,
-    required this.envoiReussi, required this.onEnvoyer,
+    required this.envoiReussi, required this.consentement,
+    required this.onConsentementChanged, required this.onEnvoyer,
     required this.onNouveauMessage,
   });
 
@@ -415,12 +431,36 @@ class _Formulaire extends StatelessWidget {
                 return null;
               },
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 20),
+
+            // Case de consentement RGPD
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Checkbox(
+                  value: consentement,
+                  onChanged: (v) => onConsentementChanged(v ?? false),
+                  activeColor: kGreen,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Text(
+                      'J\'accepte que les données saisies dans ce formulaire soient utilisées uniquement pour traiter ma demande, conformément au RGPD.',
+                      style: const TextStyle(fontSize: 12, color: kGrey, height: 1.5),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
 
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: envoiEnCours ? null : onEnvoyer,
+                onPressed: envoiEnCours || !consentement ? null : onEnvoyer,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: kGreen, foregroundColor: Colors.white,
                   disabledBackgroundColor: const Color(0xFFE5E7EB),

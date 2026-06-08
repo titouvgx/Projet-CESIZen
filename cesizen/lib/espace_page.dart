@@ -7,6 +7,7 @@ import 'auth_service.dart';
 import 'login_popup.dart';
 import 'contenu_page.dart';
 import 'diagnosticpage.dart';
+import 'utils/logger.dart';
 
 // ─────────────────────────────────────────────
 // PAGE VOTRE ESPACE
@@ -52,7 +53,7 @@ class _EspacePageState extends State<EspacePage> {
         });
       }
     } catch (e) {
-      print('❌ Erreur chargement favoris : $e');
+      AppLogger.error('Erreur chargement favoris', context: 'EspacePage', exception: e);
       if (mounted) setState(() => _loadingFavoris = false);
     }
   }
@@ -67,7 +68,7 @@ class _EspacePageState extends State<EspacePage> {
         });
       }
     } catch (e) {
-      print('❌ Erreur chargement historique : $e');
+      AppLogger.error('Erreur chargement historique', context: 'EspacePage', exception: e);
       if (mounted) setState(() => _loadingHistorique = false);
     }
   }

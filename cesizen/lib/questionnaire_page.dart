@@ -4,6 +4,7 @@ import 'widgets.dart';
 import 'variables.dart';
 import 'auth_service.dart';
 import 'utils/cesizen_utils.dart';
+import 'utils/logger.dart';
 
 class QuestionnairePage extends StatefulWidget {
   const QuestionnairePage({super.key});
@@ -37,7 +38,7 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
         });
       }
     } catch (e) {
-      print('❌ Erreur : $e');
+      AppLogger.error('Erreur chargement événements Holmes', context: 'QuestionnairePage', exception: e);
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -74,7 +75,7 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
       }
       if (mounted) _showResultat(scoreTotal, pageResultat);
     } catch (e) {
-      print('❌ Erreur soumission : $e');
+      AppLogger.error('Erreur soumission diagnostic', context: 'QuestionnairePage', exception: e);
       if (mounted) setState(() => _envoiEnCours = false);
     }
   }

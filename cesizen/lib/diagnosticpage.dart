@@ -5,6 +5,7 @@ import 'widgets.dart';
 import 'variables.dart';
 import 'auth_service.dart';
 import 'login_popup.dart';
+import 'utils/logger.dart';
 
 // ─────────────────────────────────────────────
 // PAGE DIAGNOSTIC
@@ -41,7 +42,7 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
       final data = await SupabaseService.getHistoriqueDiagnostics(AuthService.idUtilisateur!);
       if (mounted) setState(() { _historique = data; _loadingHistorique = false; });
     } catch (e) {
-      print('❌ Erreur historique : $e');
+      AppLogger.error('Erreur chargement historique', context: 'DiagnosticPage', exception: e);
       if (mounted) setState(() => _loadingHistorique = false);
     }
   }

@@ -5,6 +5,7 @@ import 'variables.dart';
 import 'widgets.dart';
 import 'contenu_page.dart';
 import 'questionnaire_page.dart';
+import 'utils/logger.dart';
 
 // ─────────────────────────────────────────────
 // APP
@@ -56,7 +57,7 @@ class _HomePageState extends State<HomePage> {
         _loadingContenus = false;
       });
     } catch (e) {
-      print('❌ Erreur chargement contenus : $e');
+      AppLogger.error('Erreur chargement contenus', context: 'HomePage', exception: e);
       setState(() => _loadingContenus = false);
     }
   }

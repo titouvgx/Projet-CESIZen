@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'variables.dart';
 import 'auth_service.dart';
 import 'home_page.dart';
+import 'utils/logger.dart';
 
 // ─────────────────────────────────────────────
 // PAGE ADMIN
@@ -307,7 +308,7 @@ class _StatistiquesTabState extends State<_StatistiquesTab> {
         _loading = false;
       });
     } catch (e) {
-      print('❌ Stats : $e');
+      AppLogger.error('Erreur chargement stats', context: 'AdminPage', exception: e);
       if (mounted) setState(() => _loading = false);
     }
   }

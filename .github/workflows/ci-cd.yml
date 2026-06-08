@@ -250,5 +250,5 @@ jobs:
           echo "### Image Docker" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Tag latest :** \`ghcr.io/titouvgx/cesizen:latest\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Tag commit :** \`ghcr.io/titouvgx/cesizen:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag commit :** \`ghcr.i o/titouvgx/cesizen:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Lien GHCR :** https://github.com/titouvgx/Projet-CESIZen/pkgs/container/cesizen" >> $GITHUB_STEP_SUMMARY

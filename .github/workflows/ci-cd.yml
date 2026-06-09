@@ -227,7 +227,10 @@ jobs:
     if: github.event_name == 'push'
 
     steps:
+      # TODO: réactiver quand le VPS sera disponible
+      # Configurer les secrets GitHub : VPS_HOST, VPS_USER, VPS_SSH_KEY
       - name: Deploiement via SSH sur le VPS
+        if: false
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -238,6 +241,9 @@ jobs:
             git pull origin master
             docker compose -f docker-compose.prod.yml up -d --build
             docker image prune -f
+
+      - name: Deploiement desactive
+        run: echo "Deploy SSH desactive - reactiver le step ci-dessus quand le VPS sera pret"
 
 
   # ════════════════════════════════════════════════════════════════════

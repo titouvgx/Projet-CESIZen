@@ -80,6 +80,7 @@ class AuthService {
       final response = await _client.auth.signUp(
         email: email,
         password: password,
+        data: {'full_name': nom},
       );
 
       if (response.user == null) {
@@ -92,13 +93,6 @@ class AuthService {
           'Confirmez votre adresse puis connectez-vous.',
         );
       }
-
-      await _client.from('utilisateur').insert({
-        'id_utilisateur': response.user!.id,
-        'nom': nom,
-        'email': email,
-        'role': 'Citoyen connecte',
-      });
 
       await _chargerProfil(response.user!.id);
 

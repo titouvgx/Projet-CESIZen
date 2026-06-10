@@ -1,0 +1,25 @@
+# Secrets — ne jamais commiter
+.env
+.env.*
+!.env.example
+
+# Flutter/Dart
+**/doc/api/
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+build/
+/coverage/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code local config
+.claude/
